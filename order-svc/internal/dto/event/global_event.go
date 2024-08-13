@@ -2,6 +2,8 @@ package event
 
 import (
 	"encoding/json"
+	"fmt"
+	"order-svc/pkg"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,14 +23,16 @@ func (s State) String() string {
 }
 
 type GlobalEvent[T any] struct {
-	EventID   string    `json:"event_id"`
-	EventType string    `json:"event_type"`
-	State     string    `json:"state"`
-	Timestamp time.Time `json:"timestamp"`
-	Source    string    `json:"source"`
-	Action    string    `json:"action"`
-	Status    string    `json:"status"`
-	Payload   T         `json:"payload"`
+	EventID    string    `json:"event_id"`
+	InstanceID string    `json:"instance_id"`
+	EventType  string    `json:"event_type"`
+	State      string    `json:"state"`
+	Timestamp  time.Time `json:"timestamp"`
+	Source     string    `json:"source"`
+	Action     string    `json:"action"`
+	Status     string    `json:"status"`
+	StatusCode int       `json:"status_code"`
+	Payload    T         `json:"payload"`
 }
 
 func NewGlobalEvent[T any](
@@ -36,13 +40,14 @@ func NewGlobalEvent[T any](
 	payload T,
 ) GlobalEvent[T] {
 	return GlobalEvent[T]{
-		EventID:   uuid.New().String(),
-		EventType: eventType,
-		Timestamp: time.Now(),
-		Source:    "order-svc",
-		Action:    action,
-		Status:    status,
-		Payload:   payload,
+		EventID:    uuid.New().String(),
+		InstanceID: fmt.Sprintf("I-%s", pkg.GenerateRandom6Char()),
+		EventType:  eventType,
+		Timestamp:  time.Now(),
+		Source:     "order-svc",
+		Action:     action,
+		Status:     status,
+		Payload:    payload,
 	}
 }
 

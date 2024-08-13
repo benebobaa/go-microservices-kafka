@@ -2,7 +2,9 @@ package usecase
 
 import (
 	"context"
+	"log"
 	"payment-svc/internal/dto"
+	"payment-svc/internal/dto/event"
 	"payment-svc/pkg/http_client"
 	"payment-svc/pkg/producer"
 )
@@ -19,25 +21,19 @@ func NewUsecase(userClient *http_client.PaymentClient, orchestraProducer *produc
 	}
 }
 
-func (u *Usecase) ProcessPayment(ctx context.Context, req *dto.Payment) error {
-	var response dto.BaseResponse[dto.Payment]
-
-	err := u.userClient.POST("/payment", req, &response)
-
-	if err != nil || response.Error != "" {
-		return err
-	}
+func (u *Usecase) ReserveProductMessaging(ctx context.Context, ge event.GlobalEvent[dto.ProductRequest]) error {
 
 	return nil
 }
-func (u *Usecase) RefundPayment(ctx context.Context, req *dto.RefundRequest) error {
-	var response dto.BaseResponse[dto.Payment]
 
-	err := u.userClient.POST("/refund", req, &response)
+func (u *Usecase) ProcessPayment(ctx context.Context, req *dto.ProductRequest) (*dto.ProductResponse, error) {
+	var response dto.BaseResponse[dto.ProductResponse]
+	log.Println("ReserveProduct: ", req)
+	err := u.userClient.POST("/products/reserve", req, &response)
 
-	if err != nil || response.Error != "" {
-		return err
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &response.Data, nil
 }

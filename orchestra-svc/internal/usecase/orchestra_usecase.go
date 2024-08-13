@@ -2,7 +2,8 @@ package usecase
 
 import (
 	"context"
-	"errors"
+	"database/sql"
+	"github.com/google/uuid"
 	"log"
 	"orchestra-svc/internal/dto"
 	"orchestra-svc/internal/dto/event"
@@ -11,80 +12,95 @@ import (
 )
 
 type OrchestraUsecase struct {
-	queries      sqlc.Querier
-	userProducer *producer.KafkaProducer
+	queries             sqlc.Querier
+	userProductProducer *producer.KafkaProducer
 }
 
 func NewOrchestraUsecase(
 	q sqlc.Querier,
-	up *producer.KafkaProducer,
+	upp *producer.KafkaProducer,
 ) *OrchestraUsecase {
 	return &OrchestraUsecase{
-		queries:      q,
-		userProducer: up,
+		queries:             q,
+		userProductProducer: upp,
 	}
 }
 
 func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.GlobalEvent[any]) error {
 
-	steps, err := o.queries.FindInstanceStepByID(ctx, eventMsg.InstanceID)
+	var instance sqlc.WorkflowInstance
+	var err error
+
+	wf, err := o.queries.FindWorkflowByType(ctx, eventMsg.EventType)
 
 	if err != nil {
+		log.Println("Error when find workflow: ", err.Error())
 		return err
 	}
 
-	if len(steps) < 1 {
-		return errors.New("workflow steps is empty")
-	}
-
-	for _, value := range steps {
-		log.Println("step value: ", value)
-
-	}
-
-	return nil
-}
-
-func (o *OrchestraUsecase) ProcessNewWorkflow(ctx context.Context, eventMsg event.GlobalEvent[any]) error {
-
-	steps, err := o.queries.GetWorkflowStepByType(ctx, eventMsg.EventType)
-
-	if len(steps) < 1 {
-		return errors.New("workflow steps is empty")
-	}
-
-	if err != nil {
-		return err
-	}
-
-	wfi, err := o.queries.CreateWorkflowInstance(ctx, sqlc.CreateWorkflowInstanceParams{
-		WorkflowID: steps[0].WorkflowTypeID,
-		Status:     dto.PENDING.String(),
-	})
-
-	if err != nil {
-		return err
-	}
-
-	eventMsg.InstanceID = wfi.ID
-
-	for _, value := range steps {
-
-		_, err = o.queries.CreateWorkflowInstanceStep(ctx, sqlc.CreateWorkflowInstanceStepParams{
-			WorkflowInstanceID: wfi.ID,
-			Status:             dto.PENDING.String(),
-			WorkflowStepID:     value.StepID,
+	if eventMsg.State == event.ORDER_CREATED.String() {
+		instance, err = o.queries.CreateWorkflowInstance(ctx, sqlc.CreateWorkflowInstanceParams{
+			ID:         eventMsg.InstanceID,
+			WorkflowID: wf.ID,
+			Status:     dto.PENDING.String(),
 		})
 
 		if err != nil {
-			log.Println("err CreateWorkflowInstanceStep: ", err.Error())
+			log.Println("Error when create workflow instance: ", err.Error())
+			return err
 		}
 	}
 
-	err = o.ProcessWorkflow(ctx, eventMsg)
+	if eventMsg.InstanceID != "" {
+		instance, err = o.queries.FindWorkflowInstanceByID(ctx, eventMsg.InstanceID)
+	}
 
 	if err != nil {
+		log.Println("Error when find workflow instance: ", err.Error())
 		return err
+	}
+
+	steps, err := o.queries.FindStepsByState(ctx, eventMsg.State)
+
+	log.Println("steps: ", steps)
+
+	if err != nil {
+		log.Println("Error when find steps: ", err.Error())
+		return err
+	}
+
+	for _, step := range steps {
+		eventMsg.InstanceID = instance.ID
+		bytes, err := eventMsg.ToJSON()
+
+		if err != nil {
+			log.Println("Error when parse message: ", err.Error())
+			continue
+		}
+
+		_, err = o.queries.CreateWorkflowInstanceStep(ctx, sqlc.CreateWorkflowInstanceStepParams{
+			WorkflowInstanceID: eventMsg.InstanceID,
+			Status:             dto.IN_PROGRESS.String(),
+			StepID:             step.StepID,
+			EventMessage: sql.NullString{
+				String: string(bytes),
+				Valid:  true,
+			},
+		})
+
+		if err != nil {
+			log.Println("Error when create instance step: ", err.Error())
+			continue
+		}
+
+		err = o.userProductProducer.SendMessage(
+			step.StepTopic,
+			uuid.New().String(),
+			bytes,
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

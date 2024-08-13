@@ -17,9 +17,10 @@ func (s Status) String() string {
 }
 
 type OrderRequest struct {
-	ProductName string `json:"product_name" valo:"notblank"`
-	CustomerID  string `json:"-"`
-	Username    string `json:"-"`
+	ProductID  string `json:"product_id" valo:"notblank"`
+	Quantity   int32  `json:"quantity" valo:"min=1"`
+	CustomerID string `json:"-"`
+	Username   string `json:"-"`
 }
 
 type OrderUpdateRequest struct {

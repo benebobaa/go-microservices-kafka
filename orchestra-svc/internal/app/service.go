@@ -8,11 +8,11 @@ import (
 	"orchestra-svc/pkg/producer"
 )
 
-func (app *App) startService(producer *producer.KafkaProducer) error {
+func (app *App) startService(userProductProducer *producer.KafkaProducer) error {
 
 	s := sqlc.New(app.db)
 	// oc := usecase.NewOrderUsecase(producer)
-	orc := usecase.NewOrchestraUsecase(s, producer)
+	orc := usecase.NewOrchestraUsecase(s, userProductProducer)
 
 	app.msg = messaging.NewMessageHandler(orc)
 

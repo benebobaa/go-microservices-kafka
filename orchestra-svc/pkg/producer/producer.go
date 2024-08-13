@@ -30,9 +30,9 @@ func NewKafkaProducer(brokers []string, topic string) (*KafkaProducer, error) {
 	}, nil
 }
 
-func (kp *KafkaProducer) SendMessage(key string, value []byte) error {
+func (kp *KafkaProducer) SendMessage(topic, key string, value []byte) error {
 	msg := &sarama.ProducerMessage{
-		Topic: kp.topic,
+		Topic: topic,
 		Key:   sarama.StringEncoder(key),
 		Value: sarama.ByteEncoder(value),
 	}

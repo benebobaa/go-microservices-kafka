@@ -1,12 +1,11 @@
 package messaging
 
 import (
-	"log"
-	"user-svc/internal/dto"
-	"user-svc/internal/dto/event"
-	"user-svc/internal/usecase"
-
 	"github.com/IBM/sarama"
+	"log"
+	"product-svc/internal/dto"
+	"product-svc/internal/dto/event"
+	"product-svc/internal/usecase"
 )
 
 type MessageHandler struct {
@@ -23,14 +22,15 @@ func (h MessageHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return ni
 func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
 
-		eventMsg, err := event.FromJSON[dto.UserValidateRequest](msg.Value)
+		eventMsg, err := event.FromJSON[dto.ProductRequest](msg.Value)
+
 		if err != nil {
-			log.Println("Error when parse message: ", err.Error())
+			log.Println("Error parsing message: ", err)
 		}
 
-		err = h.u.ValidateUserMessaging(sess.Context(), eventMsg)
+		err = h.u.ReserveProductMessaging(sess.Context(), eventMsg)
 		if err != nil {
-			log.Println("Error when validate user: ", err.Error())
+			log.Println("Error processing message: ", err)
 		}
 
 		sess.MarkMessage(msg, "")

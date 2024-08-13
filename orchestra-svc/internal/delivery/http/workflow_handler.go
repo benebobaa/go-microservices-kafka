@@ -51,12 +51,12 @@ func (wf *WorkflowHandler) GetStepsByType(c *gin.Context) {
 		return
 	}
 
-	response, err := wf.wu.GetByType(c, name)
+	//response, err := wf.wu.GetByType(c, name)
 
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+	//if err != nil {
+	//	c.JSON(500, gin.H{"error": err.Error()})
+	//	return
+	//}
 
-	c.JSON(200, response)
+	c.JSON(200, "response")
 }

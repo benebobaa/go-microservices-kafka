@@ -45,20 +45,20 @@ func (h *PaymentHandler) GetBalance(c *gin.Context) {
 		balances = append(balances, balance)
 	}
 
-	c.JSON(200, gin.H{"data": balances})
+	c.JSON(200, gin.H{"status_code": 200, "data": balances})
 }
 
 func (h *PaymentHandler) CreateTransaction(c *gin.Context) {
 	var req TransactionRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
 		return
 	}
 
 	err := valo.Validate(req)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h *PaymentHandler) CreateTransaction(c *gin.Context) {
 
 	for _, transaction := range h.dbT {
 		if transaction.RefID == req.RefID {
-			c.JSON(400, gin.H{"error": "ref_id already exists"})
+			c.JSON(400, gin.H{"status_code": 400, "error": "ref_id already exists"})
 			return
 		}
 	}
@@ -75,12 +75,12 @@ func (h *PaymentHandler) CreateTransaction(c *gin.Context) {
 	account, ok := h.dbB[req.AccountID]
 
 	if !ok {
-		c.JSON(404, gin.H{"error": "account not found"})
+		c.JSON(404, gin.H{"status_code": 404, "error": "account not found"})
 		return
 	}
 
 	if account.Balance < req.Amount {
-		c.JSON(400, gin.H{"error": "balance is not enough"})
+		c.JSON(400, gin.H{"status_code": 400, "error": "balance is not enough"})
 		return
 	}
 
@@ -97,20 +97,20 @@ func (h *PaymentHandler) CreateTransaction(c *gin.Context) {
 
 	h.dbT[transaction.ID] = transaction
 
-	c.JSON(201, gin.H{"data": req})
+	c.JSON(201, gin.H{"status_code": 201, "data": req})
 }
 
 func (h *PaymentHandler) RefundTransaction(c *gin.Context) {
 	var req RefundRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
 		return
 	}
 
 	err := valo.Validate(req)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
 		return
 	}
 
@@ -122,12 +122,12 @@ func (h *PaymentHandler) RefundTransaction(c *gin.Context) {
 			account, ok := h.dbB[transaction.AccountID]
 
 			if !ok {
-				c.JSON(404, gin.H{"error": "account not found"})
+				c.JSON(404, gin.H{"status_code": 404, "error": "account not found"})
 				return
 			}
 
 			if transaction.Status == "refunded" {
-				c.JSON(400, gin.H{"error": "transaction already refunded"})
+				c.JSON(400, gin.H{"status_code": 400, "error": "transaction already refunded"})
 				return
 			}
 
@@ -137,10 +137,10 @@ func (h *PaymentHandler) RefundTransaction(c *gin.Context) {
 			transaction.Status = "refunded"
 			h.dbT[transaction.ID] = transaction
 
-			c.JSON(200, gin.H{"data": transaction})
+			c.JSON(200, gin.H{"status_code": 200, "data": transaction})
 			return
 		}
 	}
 
-	c.JSON(404, gin.H{"error": "transaction not found"})
+	c.JSON(404, gin.H{"status_code": 404, "error": "transaction not found"})
 }

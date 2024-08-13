@@ -1,9 +1,8 @@
-package kafka
+package consumer
 
 import (
 	"context"
-	"log"
-	"product-svc/internal/usecase"
+	"product-svc/internal/delivery/messaging"
 
 	"github.com/IBM/sarama"
 )
@@ -14,32 +13,12 @@ type KafkaConsumer struct {
 	handler  sarama.ConsumerGroupHandler
 }
 
-type MessageHandler struct {
-	userUsecase *usecase.Usecase
-	producer    *KafkaProducer
-}
-
-func (h MessageHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
-func (h MessageHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
-
-func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-
-	for msg := range claim.Messages() {
-
-		log.Printf("Received message: %s", string(msg.Value))
-
-		sess.MarkMessage(msg, "")
-	}
-	return nil
-}
-
 func NewKafkaConsumer(
 	brokers []string, groupID string,
-	topics []string, usecase *usecase.Usecase,
-	producer *KafkaProducer,
+	topics []string, messageHandler *messaging.MessageHandler,
 ) (*KafkaConsumer, error) {
 	config := sarama.NewConfig()
-	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+	config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 
 	consumer, err := sarama.NewConsumerGroup(brokers, groupID, config)
@@ -50,10 +29,7 @@ func NewKafkaConsumer(
 	return &KafkaConsumer{
 		consumer: consumer,
 		topics:   topics,
-		handler: MessageHandler{
-			userUsecase: usecase,
-			producer:    producer,
-		},
+		handler:  messageHandler,
 	}, nil
 }
 

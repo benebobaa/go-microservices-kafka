@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 	kafka "user-svc/internal/delivery/messaging"
-	"user-svc/internal/usecase"
 	"user-svc/pkg"
 	"user-svc/pkg/consumer"
 	"user-svc/pkg/producer"
@@ -20,43 +19,41 @@ import (
 )
 
 type App struct {
-	gin     *gin.Engine
-	usecase *usecase.Usecase
-	config  *pkg.Config
-	msg     *kafka.MessageHandler
+	gin    *gin.Engine
+	config *pkg.Config
+	msg    *kafka.MessageHandler
 }
 
 func NewApp(gin *gin.Engine, c *pkg.Config) *App {
 	return &App{
-		gin:     gin,
-		usecase: &usecase.Usecase{},
-		config:  c,
+		gin:    gin,
+		config: c,
 	}
 }
 
-func (a *App) Run() {
+func (app *App) Run() {
 
 	orchestraProducer, err := producer.NewKafkaProducer(
-		[]string{a.config.KafkaBroker},
-		a.config.OrchestraTopic,
+		[]string{app.config.KafkaBroker},
+		app.config.OrchestraTopic,
 	)
 	if err != nil {
 		log.Fatalf("Error creating Kafka producer: %v", err)
 	}
 	defer orchestraProducer.Close()
 
-	a.startService(orchestraProducer)
+	app.startService(orchestraProducer)
 
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%s", a.config.Port),
-		Handler: a.gin,
+		Addr:    fmt.Sprintf(":%s", app.config.Port),
+		Handler: app.gin,
 	}
 
 	consumer, err := consumer.NewKafkaConsumer(
-		[]string{a.config.KafkaBroker},
-		a.config.GroupID,
-		[]string{a.config.UserTopic},
-		a.msg,
+		[]string{app.config.KafkaBroker},
+		app.config.GroupID,
+		[]string{app.config.UserTopic, app.config.UserProductTopic},
+		app.msg,
 	)
 	defer consumer.Close()
 

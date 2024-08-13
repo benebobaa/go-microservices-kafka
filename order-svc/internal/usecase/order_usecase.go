@@ -27,11 +27,12 @@ func NewOrderUsecase(queries sqlc.Querier, producer *producer.KafkaProducer) *Or
 func (oc *OrderUsecase) CreateOrder(ctx context.Context, order *dto.OrderRequest) (*sqlc.Order, error) {
 
 	orderCreated, err := oc.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
-		OrderRefID:  fmt.Sprintf("%s-%s", "TOKPED", uuid.New()),
-		CustomerID:  order.CustomerID,
-		Username:    order.Username,
-		ProductName: order.ProductName,
-		Status:      dto.PROCESSING.String(),
+		OrderRefID: fmt.Sprintf("%s-%s", "TOKPED", uuid.New()),
+		CustomerID: order.CustomerID,
+		Username:   order.Username,
+		ProductID:  order.ProductID,
+		Quantity:   order.Quantity,
+		Status:     dto.PROCESSING.String(),
 	})
 
 	if err != nil {
@@ -44,8 +45,8 @@ func (oc *OrderUsecase) CreateOrder(ctx context.Context, order *dto.OrderRequest
 		"order_process",
 		orderCreated,
 	)
-	orderEvent.State = "ORDER_CREATED"
-
+	orderEvent.State = "order_created"
+	orderEvent.StatusCode = 201
 	bytes, err := orderEvent.ToJSON()
 
 	if err != nil {

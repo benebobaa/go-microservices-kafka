@@ -32,25 +32,34 @@ func NewApp(db *sql.DB, gin *gin.Engine, config *pkg.Config) *App {
 
 func (app *App) Run() {
 
-	userProducer, err := producer.NewKafkaProducer(
+	//userProducer, err := producer.NewKafkaProducer(
+	//	[]string{app.config.KafkaBroker},
+	//	app.config.UserTopic,
+	//)
+	//if err != nil {
+	//	log.Fatalf("Error creating Kafka producer: %v", err)
+	//}
+	//defer userProducer.Close()
+
+	userProductProducer, err := producer.NewKafkaProducer(
 		[]string{app.config.KafkaBroker},
-		app.config.UserTopic,
+		app.config.UserProductTopic,
 	)
 	if err != nil {
 		log.Fatalf("Error creating Kafka producer: %v", err)
 	}
-	defer userProducer.Close()
+	defer userProductProducer.Close()
 
-	productProducer, err := producer.NewKafkaProducer(
-		[]string{app.config.KafkaBroker},
-		app.config.ProductTopic,
-	)
-	if err != nil {
-		log.Fatalf("Error creating Kafka producer: %v", err)
-	}
-	defer productProducer.Close()
+	//productProducer, err := producer.NewKafkaProducer(
+	//	[]string{app.config.KafkaBroker},
+	//	app.config.ProductTopic,
+	//)
+	//if err != nil {
+	//	log.Fatalf("Error creating Kafka producer: %v", err)
+	//}
+	//defer productProducer.Close()
 
-	if err := app.startService(userProducer); err != nil {
+	if err := app.startService(userProductProducer); err != nil {
 		log.Fatalf("Error starting service: %v", err)
 	}
 

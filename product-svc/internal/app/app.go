@@ -3,12 +3,15 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"product-svc/internal/delivery/kafka"
-	"product-svc/internal/usecase"
+	"product-svc/internal/delivery/messaging"
+	"product-svc/pkg"
+	"product-svc/pkg/consumer"
+	"product-svc/pkg/producer"
 	"syscall"
 	"time"
 
@@ -16,36 +19,41 @@ import (
 )
 
 type App struct {
-	gin     *gin.Engine
-	usecase *usecase.Usecase
+	gin    *gin.Engine
+	config *pkg.Config
+	msg    *messaging.MessageHandler
 }
 
-func NewApp(gin *gin.Engine) *App {
-	return &App{gin: gin}
+func NewApp(gin *gin.Engine, c *pkg.Config) *App {
+	return &App{
+		gin:    gin,
+		config: c,
+	}
 }
 
-func (a *App) Run() {
-	brokers := []string{"localhost:29092"} // Replace with your Kafka broker addresses
-	groupID := "user-svc-group"
-	topics := []string{"product-topic"}
-	orchestraTopic := "orchestra-topic"
+func (app *App) Run() {
 
-	a.startService()
+	orchestraProducer, err := producer.NewKafkaProducer(
+		[]string{app.config.KafkaBroker},
+		app.config.OrchestraTopic,
+	)
+	if err != nil {
+		log.Fatalf("Error creating Kafka producer: %v", err)
+	}
+	defer orchestraProducer.Close()
+
+	app.startService(orchestraProducer)
 
 	server := http.Server{
-		Addr:    ":8084",
-		Handler: a.gin,
+		Addr:    fmt.Sprintf(":%s", app.config.Port),
+		Handler: app.gin,
 	}
 
-	producer, err := kafka.NewKafkaProducer(brokers, orchestraTopic)
-	if err != nil {
-		log.Fatalf("Failed to create producer: %v", err)
-	}
-	defer producer.Close()
-
-	consumer, err := kafka.NewKafkaConsumer(
-		brokers, groupID, topics,
-		a.usecase, producer,
+	consumer, err := consumer.NewKafkaConsumer(
+		[]string{app.config.KafkaBroker},
+		app.config.GroupID,
+		[]string{app.config.ProductTopic, app.config.UserProductTopic},
+		app.msg,
 	)
 	defer consumer.Close()
 
@@ -73,8 +81,6 @@ func (a *App) Run() {
 
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Waiting signal send to chan quit
-	// Blocking channel
 	<-quit
 	log.Println("Shutdown Server ...")
 	log.Println("Closing Kafka consumer...")

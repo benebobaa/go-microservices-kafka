@@ -64,3 +64,7 @@ func (r *PaymentClient) GET(suffix string, request any, response any) error {
 func (r *PaymentClient) POST(suffix string, request any, response any) error {
 	return r.call(suffix, http.MethodPost, request, response)
 }
+
+func (r *PaymentClient) PATCH(suffix string, request any, response any) error {
+	return r.call(suffix, http.MethodPatch, request, response)
+}

@@ -12,24 +12,26 @@ type State int
 const (
 	PENDING State = iota
 	ORDER_CREATED
+	USER_VALIDATION_SUCCESS
 	PRODUCT_RESERVE_FAILED
 	PAYMENT_FAILED
 	PAYMENT_SUCCESS
 )
 
 func (s State) String() string {
-	return [...]string{"PENDING", "ORDER_CREATED", "PRODUCT_RESERVE_FAILED", "PAYMENT_FAILED", "PAYMENT_SUCCESS"}[s]
+	return [...]string{"pending", "order_created", "product_reserve_failed", "payment_failed", "payment_success"}[s]
 }
 
 type GlobalEvent[T any] struct {
 	EventID    string    `json:"event_id"`
-	InstanceID int32     `json:"instance_id"`
+	InstanceID string    `json:"instance_id"`
 	EventType  string    `json:"event_type"`
 	State      string    `json:"state"`
 	Timestamp  time.Time `json:"timestamp"`
 	Source     string    `json:"source"`
 	Action     string    `json:"action"`
 	Status     string    `json:"status"`
+	StatusCode int       `json:"status_code"`
 	Payload    T         `json:"payload"`
 }
 
@@ -48,12 +50,12 @@ func NewGlobalEvent[T any](
 	}
 }
 
-func (ge GlobalEvent[T]) ToJSON() ([]byte, error) {
-	return json.Marshal(ge)
-}
-
 func FromJSON[T any](data []byte) (GlobalEvent[T], error) {
 	var ge GlobalEvent[T]
 	err := json.Unmarshal(data, &ge)
 	return ge, err
+}
+
+func (ge GlobalEvent[T]) ToJSON() ([]byte, error) {
+	return json.Marshal(ge)
 }

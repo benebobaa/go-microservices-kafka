@@ -20,7 +20,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		users = append(users, user)
 	}
 
-	c.JSON(200, gin.H{"data": users})
+	c.JSON(200, gin.H{"status_code": 200, "data": users})
 }
 
 func (h *UserHandler) GetuUserByUsername(c *gin.Context) {
@@ -28,7 +28,7 @@ func (h *UserHandler) GetuUserByUsername(c *gin.Context) {
 
 	for _, v := range h.db {
 		if v.Username == username {
-			c.JSON(200, gin.H{"data": v})
+			c.JSON(200, gin.H{"status_code": 200, "data": v})
 			return
 		}
 	}

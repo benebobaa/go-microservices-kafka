@@ -18,7 +18,6 @@ func NewHandler(usecase *usecase.Usecase) *Handler {
 }
 
 func (h *Handler) TestValidate(c *gin.Context) {
-	var baseResponse dto.BaseResponse[*dto.UserResponse]
 
 	username := c.DefaultQuery("username", "beneboba")
 
@@ -28,11 +27,9 @@ func (h *Handler) TestValidate(c *gin.Context) {
 	)
 
 	if err != nil {
-		baseResponse.Error = err.Error()
-		c.JSON(400, baseResponse)
+		c.JSON(400, response)
 		return
 	}
 
-	baseResponse.Data = response
-	c.JSON(200, baseResponse)
+	c.JSON(200, response)
 }

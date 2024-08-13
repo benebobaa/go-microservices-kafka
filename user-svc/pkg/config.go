@@ -8,14 +8,15 @@ import (
 )
 
 type Config struct {
-	Port           string
-	DBDriver       string
-	DBSource       string
-	KafkaBroker    string
-	OrchestraTopic string
-	UserTopic      string
-	GroupID        string
-	ClientUrl      string
+	Port             string
+	DBDriver         string
+	DBSource         string
+	KafkaBroker      string
+	OrchestraTopic   string
+	UserTopic        string
+	UserProductTopic string
+	GroupID          string
+	ClientUrl        string
 }
 
 func LoadConfig() *Config {
@@ -26,13 +27,14 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:           os.Getenv("PORT"),
-		DBDriver:       os.Getenv("DB_DRIVER"),
-		DBSource:       os.Getenv("DB_SOURCE"),
-		KafkaBroker:    os.Getenv("KAFKA_BROKER"),
-		OrchestraTopic: os.Getenv("ORCHESTRA_TOPIC"),
-		UserTopic:      os.Getenv("USER_TOPIC"),
-		GroupID:        os.Getenv("GROUP_ID"),
-		ClientUrl:      os.Getenv("CLIENT_URL"),
+		Port:             os.Getenv("PORT"),
+		DBDriver:         os.Getenv("DB_DRIVER"),
+		DBSource:         os.Getenv("DB_SOURCE"),
+		KafkaBroker:      os.Getenv("KAFKA_BROKER"),
+		OrchestraTopic:   os.Getenv("ORCHESTRA_TOPIC"),
+		UserTopic:        os.Getenv("USER_TOPIC"),
+		UserProductTopic: os.Getenv("USER_PRODUCT_TOPIC"),
+		GroupID:          os.Getenv("GROUP_ID"),
+		ClientUrl:        os.Getenv("CLIENT_URL"),
 	}
 }

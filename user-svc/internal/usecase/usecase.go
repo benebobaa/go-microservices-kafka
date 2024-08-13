@@ -2,14 +2,13 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/google/uuid"
+	"log"
 	"user-svc/internal/dto"
 	"user-svc/internal/dto/event"
 	"user-svc/pkg/http_client"
 	"user-svc/pkg/producer"
-
-	"github.com/google/uuid"
 )
 
 type Usecase struct {
@@ -24,40 +23,58 @@ func NewUsecase(userClient *http_client.UserClient, orchestraProducer *producer.
 	}
 }
 
-func (u *Usecase) ValidateUser(ctx context.Context, request *dto.UserValidateRequest) (*dto.UserResponse, error) {
+func (u *Usecase) ValidateUserMessaging(ctx context.Context, ge event.GlobalEvent[dto.UserValidateRequest]) error {
+
+	response, err := u.ValidateUser(ctx, &dto.UserValidateRequest{
+		Username: ge.Payload.Username,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	gevent := event.NewGlobalEvent(
+		"get",
+		"success",
+		"user_validated",
+		"user_validation_success",
+		response.Data,
+	)
+
+	gevent.EventID = ge.EventID
+	gevent.InstanceID = ge.InstanceID
+	gevent.EventType = ge.EventType
+	gevent.StatusCode = response.StatusCode
+	bytes, err := gevent.ToJSON()
+
+	log.Println("gevent: ", gevent)
+	if err != nil {
+		return err
+	}
+	err = u.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) ValidateUser(ctx context.Context, request *dto.UserValidateRequest) (*dto.BaseResponse[dto.UserResponse], error) {
 
 	var response dto.BaseResponse[dto.UserResponse]
 
-	gEvent := event.NewGlobalEvent(
-		"get",
-		"success",
-		"user_valid",
-		response,
-	)
-
-	defer func() {
-		bytes, _ := gEvent.ToJSON()
-		u.orchestraProducer.SendMessage(uuid.New().String(), bytes)
-	}()
-
 	err := u.userClient.GET(
 		fmt.Sprintf("/users/%s", request.Username),
-		nil,
+		request,
 		&response,
 	)
-
-	if err != nil || response.Error != "" {
-		gEvent.Status = "failed"
-		gEvent.EventType = "user_not_valid"
-		return nil, errors.Join(err, errors.New(response.Error))
-	}
-
-	bytes, _ := gEvent.ToJSON()
-	err = u.orchestraProducer.SendMessage(uuid.New().String(), bytes)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &response.Data, nil
+	log.Println("response userClient: ", response)
+
+	return &response, nil
 }

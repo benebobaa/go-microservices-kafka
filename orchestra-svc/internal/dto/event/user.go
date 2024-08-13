@@ -9,3 +9,10 @@ type UserResponse struct {
 	Message string `json:"message"`
 	Error   string `json:"error"`
 }
+
+type User struct {
+	Id            string `json:"id"`
+	AccountBankId string `json:"account_bank_id"`
+	Username      string `json:"username"`
+	Email         string `json:"email"`
+}

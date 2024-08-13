@@ -8,6 +8,9 @@ DROP TABLE IF EXISTS workflow_instances;
 -- Workflow Steps
 DROP TABLE IF EXISTS workflow_steps;
 
+-- State Actions
+DROP TABLE IF EXISTS state_actions;
+
 -- Steps
 DROP TABLE IF EXISTS steps;
 

@@ -1,15 +1,9 @@
--- Workflow Types
-CREATE TABLE workflow_types (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
-);
 
 -- Workflows
 CREATE TABLE workflows (
     id SERIAL PRIMARY KEY,
-    workflow_type_id INTEGER NOT NULL REFERENCES workflow_types(id),
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
+    type VARCHAR(50) UNIQUE NOT NULL,
+    description VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -18,23 +12,25 @@ CREATE TABLE workflows (
 CREATE TABLE steps (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    description TEXT,
+    description VARCHAR(255) NOT NULL,
+    service VARCHAR(100) NOT NULL,
+    topic VARCHAR(100) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Workflow Steps
-CREATE TABLE workflow_steps (
+-- State_Actions
+CREATE TABLE state_actions (
     id SERIAL PRIMARY KEY,
-    workflow_id INTEGER NOT NULL REFERENCES workflows(id),
+    state VARCHAR(255) NOT NULL,
     step_id INTEGER NOT NULL REFERENCES steps(id),
-    order_index INTEGER NOT NULL,
-    UNIQUE (workflow_id, order_index)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Workflow Instances
 CREATE TABLE workflow_instances (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR PRIMARY KEY,
     workflow_id INTEGER NOT NULL REFERENCES workflows(id),
     status VARCHAR(20) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -44,10 +40,9 @@ CREATE TABLE workflow_instances (
 -- Workflow Instance Steps
 CREATE TABLE workflow_instance_steps (
     id SERIAL PRIMARY KEY,
-    workflow_instance_id INTEGER NOT NULL REFERENCES workflow_instances(id),
-    workflow_step_id INTEGER NOT NULL REFERENCES workflow_steps(id),
+    workflow_instance_id VARCHAR NOT NULL REFERENCES workflow_instances(id),
+    step_id INTEGER NOT NULL REFERENCES steps(id),
     status VARCHAR(20) NOT NULL,
     event_message TEXT,
-    started_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE
+    created_at TIMESTAMP WITH TIME ZONE
 );

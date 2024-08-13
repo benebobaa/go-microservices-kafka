@@ -1,6 +1,6 @@
 -- name: CreateOrder :one
-INSERT INTO orders (order_ref_id, customer_id, username, product_name, status) 
-VALUES ($1, $2, $3, $4, $5) RETURNING *;
+INSERT INTO orders (order_ref_id, customer_id, username, product_id, quantity, status)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
 
 -- name: UpdateOrder :one
 UPDATE orders

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -30,6 +31,7 @@ func (r *UserClient) call(suffix, method string, request any, response any) erro
 	if err != nil {
 		return errors.New("error marshalling HTTP request")
 	}
+	log.Println("URL: ", fmt.Sprintf("%s%s", r.url, suffix))
 
 	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", r.url, suffix), bytes.NewReader(jsonData))
 	if err != nil {

@@ -13,11 +13,11 @@ type Config struct {
 	DBSource         string
 	KafkaBroker      string
 	OrchestraTopic   string
-	OrderTopic       string
 	UserTopic        string
-	ProductTopic     string
 	UserProductTopic string
+	ProductTopic     string
 	GroupID          string
+	ClientUrl        string
 }
 
 func LoadConfig() *Config {
@@ -33,10 +33,10 @@ func LoadConfig() *Config {
 		DBSource:         os.Getenv("DB_SOURCE"),
 		KafkaBroker:      os.Getenv("KAFKA_BROKER"),
 		OrchestraTopic:   os.Getenv("ORCHESTRA_TOPIC"),
-		OrderTopic:       os.Getenv("ORDER_TOPIC"),
 		UserTopic:        os.Getenv("USER_TOPIC"),
-		ProductTopic:     os.Getenv("PRODUCT_TOPIC"),
 		UserProductTopic: os.Getenv("USER_PRODUCT_TOPIC"),
+		ProductTopic:     os.Getenv("PRODUCT_TOPIC"),
 		GroupID:          os.Getenv("GROUP_ID"),
+		ClientUrl:        os.Getenv("CLIENT_URL"),
 	}
 }

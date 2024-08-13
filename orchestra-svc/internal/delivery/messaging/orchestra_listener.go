@@ -1,7 +1,6 @@
 package messaging
 
 import (
-	"context"
 	"log"
 	"orchestra-svc/internal/dto/event"
 	"orchestra-svc/internal/usecase"
@@ -10,11 +9,11 @@ import (
 )
 
 type MessageHandler struct {
-	usecase *usecase.OrchestraUsecase
+	oc *usecase.OrchestraUsecase
 }
 
-func NewMessageHandler(u *usecase.OrchestraUsecase) *MessageHandler {
-	return &MessageHandler{usecase: u}
+func NewMessageHandler(oc *usecase.OrchestraUsecase) *MessageHandler {
+	return &MessageHandler{oc: oc}
 }
 
 func (h MessageHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
@@ -30,15 +29,10 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 			log.Println("Error when parse message: ", err.Error())
 		}
 
-		if eventMsg.InstanceID != 0 {
-			err = h.usecase.ProcessWorkflow(context.Background(), eventMsg)
-		} else {
-			err = h.usecase.ProcessNewWorkflow(context.Background(), eventMsg)
-		}
+		err = h.oc.ProcessWorkflow(sess.Context(), eventMsg)
 
 		if err != nil {
 			log.Println("Error when process workflow: ", err.Error())
-			continue
 		}
 
 		sess.MarkMessage(msg, "")

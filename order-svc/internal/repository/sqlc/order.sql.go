@@ -24,16 +24,17 @@ func (q *Queries) CountByID(ctx context.Context, orderRefID string) (int64, erro
 }
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (order_ref_id, customer_id, username, product_name, status) 
-VALUES ($1, $2, $3, $4, $5) RETURNING id, order_ref_id, customer_id, username, product_name, order_date, status, total_amount, created_at, updated_at
+INSERT INTO orders (order_ref_id, customer_id, username, product_id, quantity, status)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, order_ref_id, customer_id, username, product_id, quantity, order_date, status, total_amount, created_at, updated_at
 `
 
 type CreateOrderParams struct {
-	OrderRefID  string `json:"order_ref_id"`
-	CustomerID  string `json:"customer_id"`
-	Username    string `json:"username"`
-	ProductName string `json:"product_name"`
-	Status      string `json:"status"`
+	OrderRefID string `json:"order_ref_id"`
+	CustomerID string `json:"customer_id"`
+	Username   string `json:"username"`
+	ProductID  string `json:"product_id"`
+	Quantity   int32  `json:"quantity"`
+	Status     string `json:"status"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
@@ -41,7 +42,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		arg.OrderRefID,
 		arg.CustomerID,
 		arg.Username,
-		arg.ProductName,
+		arg.ProductID,
+		arg.Quantity,
 		arg.Status,
 	)
 	var i Order
@@ -50,7 +52,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.OrderRefID,
 		&i.CustomerID,
 		&i.Username,
-		&i.ProductName,
+		&i.ProductID,
+		&i.Quantity,
 		&i.OrderDate,
 		&i.Status,
 		&i.TotalAmount,
@@ -61,7 +64,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 }
 
 const findOrderByID = `-- name: FindOrderByID :one
-SELECT id, order_ref_id, customer_id, username, product_name, order_date, status, total_amount, created_at, updated_at FROM orders WHERE id = $1 LIMIT 1
+SELECT id, order_ref_id, customer_id, username, product_id, quantity, order_date, status, total_amount, created_at, updated_at FROM orders WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) FindOrderByID(ctx context.Context, id int32) (Order, error) {
@@ -72,7 +75,8 @@ func (q *Queries) FindOrderByID(ctx context.Context, id int32) (Order, error) {
 		&i.OrderRefID,
 		&i.CustomerID,
 		&i.Username,
-		&i.ProductName,
+		&i.ProductID,
+		&i.Quantity,
 		&i.OrderDate,
 		&i.Status,
 		&i.TotalAmount,
@@ -90,7 +94,7 @@ SET
     updated_at = CURRENT_TIMESTAMP
 WHERE 
     order_ref_id = $3
-RETURNING id, order_ref_id, customer_id, username, product_name, order_date, status, total_amount, created_at, updated_at
+RETURNING id, order_ref_id, customer_id, username, product_id, quantity, order_date, status, total_amount, created_at, updated_at
 `
 
 type UpdateOrderParams struct {
@@ -107,7 +111,8 @@ func (q *Queries) UpdateOrder(ctx context.Context, arg UpdateOrderParams) (Order
 		&i.OrderRefID,
 		&i.CustomerID,
 		&i.Username,
-		&i.ProductName,
+		&i.ProductID,
+		&i.Quantity,
 		&i.OrderDate,
 		&i.Status,
 		&i.TotalAmount,
