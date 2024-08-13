@@ -33,6 +33,8 @@ func (u *Usecase) ValidateUserMessaging(ctx context.Context, ge event.GlobalEven
 		return err
 	}
 
+	log.Println("response data: ", response.Data)
+
 	gevent := event.NewGlobalEvent(
 		"get",
 		"success",
