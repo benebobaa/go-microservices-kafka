@@ -1,0 +1,14 @@
+-- Create table `orders`
+
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    order_ref_id VARCHAR(255) NOT NULL,
+    customer_id VARCHAR(100) NOT NULL,
+    username VARCHAR(50) NOT NULL,
+    product_name VARCHAR(50) NOT NULL,
+    order_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    total_amount DOUBLE PRECISION,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
