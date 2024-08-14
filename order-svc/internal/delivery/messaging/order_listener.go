@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"log"
+	"order-svc/internal/dto"
 	"order-svc/internal/dto/event"
 	"order-svc/internal/usecase"
 
@@ -23,10 +24,16 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 
 	for msg := range claim.Messages() {
 
-		eventMsg, err := event.FromJSON[any, any](msg.Value)
+		eventMsg, err := event.FromJSON[dto.OrderUpdateRequest, any](msg.Value)
 
 		if err != nil {
 			log.Println("failed parse event: ", err.Error())
+		}
+
+		err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+
+		if err != nil {
+			log.Println("failed update order: ", err.Error())
 		}
 
 		sess.MarkMessage(msg, "")
