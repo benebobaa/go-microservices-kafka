@@ -23,9 +23,10 @@ func main() {
 	gin.POST("/products/reserve", ph.ReserveProduct)
 	gin.POST("/products/release", ph.ReleaseProduct)
 
-	gin.GET("/balance", pyh.GetBalance)
+	gin.GET("/balances", pyh.GetBalance)
+	gin.GET("/transactions", pyh.GetTransaction)
 	gin.POST("/payment", pyh.CreateTransaction)
-	gin.PATCH("/refund", pyh.RefundTransaction)
+	gin.PATCH("/payment/refund", pyh.RefundTransaction)
 
 	fmt.Println("Server is running on port 5000")
 	gin.Run(":5000")
