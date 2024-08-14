@@ -48,6 +48,16 @@ func (h *PaymentHandler) GetBalance(c *gin.Context) {
 	c.JSON(200, gin.H{"status_code": 200, "data": balances})
 }
 
+func (h *PaymentHandler) GetTransaction(c *gin.Context) {
+	var transactions []Transaction
+
+	for _, v := range h.dbT {
+		transactions = append(transactions, v)
+	}
+
+	c.JSON(200, gin.H{"status_code": 200, "data": transactions})
+}
+
 func (h *PaymentHandler) CreateTransaction(c *gin.Context) {
 	var req TransactionRequest
 
