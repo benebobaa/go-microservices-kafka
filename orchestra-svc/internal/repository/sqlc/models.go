@@ -8,6 +8,14 @@ import (
 	"database/sql"
 )
 
+type PayloadKey struct {
+	ID        int32        `json:"id"`
+	StepID    int32        `json:"step_id"`
+	Key       string       `json:"key"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
 type StateAction struct {
 	ID        int32        `json:"id"`
 	State     string       `json:"state"`

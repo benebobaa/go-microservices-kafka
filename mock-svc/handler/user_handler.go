@@ -33,5 +33,5 @@ func (h *UserHandler) GetuUserByUsername(c *gin.Context) {
 		}
 	}
 
-	c.JSON(404, gin.H{"error": "user not found"})
+	c.JSON(404, gin.H{"status_code": 404, "error": "user not found"})
 }

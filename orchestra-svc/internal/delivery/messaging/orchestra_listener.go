@@ -23,7 +23,7 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 
 	for msg := range claim.Messages() {
 
-		eventMsg, err := event.FromJSON[any](msg.Value)
+		eventMsg, err := event.FromJSON[any, any](msg.Value)
 
 		if err != nil {
 			log.Println("Error when parse message: ", err.Error())

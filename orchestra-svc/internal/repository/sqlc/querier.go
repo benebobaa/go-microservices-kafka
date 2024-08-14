@@ -12,6 +12,7 @@ type Querier interface {
 	CreateWorkflowInstance(ctx context.Context, arg CreateWorkflowInstanceParams) (WorkflowInstance, error)
 	CreateWorkflowInstanceStep(ctx context.Context, arg CreateWorkflowInstanceStepParams) (WorkflowInstanceStep, error)
 	FindInstanceStepByID(ctx context.Context, workflowInstanceID string) ([]WorkflowInstanceStep, error)
+	FindPayloadKeysByStepID(ctx context.Context, stepID int32) ([]string, error)
 	FindStepsByState(ctx context.Context, state string) ([]FindStepsByStateRow, error)
 	FindWorkflowByType(ctx context.Context, type_ string) (Workflow, error)
 	FindWorkflowInstanceByID(ctx context.Context, id string) (WorkflowInstance, error)

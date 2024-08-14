@@ -23,38 +23,52 @@ func NewUsecase(userClient *http_client.ProductClient, orchestraProducer *produc
 	}
 }
 
-func (u *Usecase) ReserveProductMessaging(ctx context.Context, ge event.GlobalEvent[dto.ProductRequest]) error {
-
-	log.Println("ReserveProductMessaging: ", ge.Payload)
-
+func (u *Usecase) ReserveProductMessaging(ctx context.Context, ge event.GlobalEvent[dto.ProductRequest, any]) error {
 	response, err := u.ReserveProduct(ctx, &dto.ProductRequest{
-		ProductID: ge.Payload.ProductID,
-		Quantity:  ge.Payload.Quantity,
+		ProductID: ge.Payload.Request.ProductID,
+		Quantity:  ge.Payload.Request.Quantity,
 	})
 
-	var gevent event.GlobalEvent[any]
+	var gevent event.GlobalEvent[dto.ProductRequest, any]
+	basePayload := event.BasePayload[dto.ProductRequest, any]{
+		Request: ge.Payload.Request,
+	}
 	if err != nil || response.Error != "" {
-		gevent = event.NewGlobalEvent[any](
+		if err != nil {
+			basePayload.Response = err.Error()
+		} else {
+			basePayload.Response = response.Error
+		}
+
+		gevent = event.NewGlobalEvent[dto.ProductRequest, any](
 			"update",
 			"error",
 			"product_reservation_failed",
-			"product_reservation_error",
-			response.Error, response.StatusCode,
+			basePayload,
 		)
 	} else {
-		gevent = event.NewGlobalEvent[any](
+		basePayload.Response = response.Data
+
+		gevent = event.NewGlobalEvent[dto.ProductRequest, any](
 			"update",
 			"success",
-			"product_reserved",
 			"product_reservation_success",
-			response.Data, response.StatusCode,
+			basePayload,
 		)
 	}
+
+	log.Println("check state:", gevent.State)
 
 	gevent.EventID = ge.EventID
 	gevent.InstanceID = ge.InstanceID
 	gevent.EventType = ge.EventType
-	gevent.StatusCode = response.StatusCode
+	if response != nil {
+		gevent.StatusCode = response.StatusCode
+	} else {
+		gevent.StatusCode = 500
+	}
+
+	log.Println("gevent:", gevent)
 
 	bytes, jsonErr := gevent.ToJSON()
 	if jsonErr != nil {

@@ -9,6 +9,89 @@ import (
 	"context"
 )
 
+const findPayloadKeysByStepID = `-- name: FindPayloadKeysByStepID :many
+SELECT key FROM payload_keys WHERE step_id = $1
+`
+
+func (q *Queries) FindPayloadKeysByStepID(ctx context.Context, stepID int32) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, findPayloadKeysByStepID, stepID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, err
+		}
+		items = append(items, key)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const findStepsByState = `-- name: FindStepsByState :many
+SELECT DISTINCT
+    sa.state,
+    s.id AS step_id,
+    s.service AS service,
+    s.name AS step_name,
+    s.description AS step_description,
+    s.topic AS step_topic
+FROM
+    state_actions sa
+        JOIN steps s ON sa.step_id = s.id
+WHERE
+    sa.state = $1
+ORDER BY
+    sa.state
+`
+
+type FindStepsByStateRow struct {
+	State           string `json:"state"`
+	StepID          int32  `json:"step_id"`
+	Service         string `json:"service"`
+	StepName        string `json:"step_name"`
+	StepDescription string `json:"step_description"`
+	StepTopic       string `json:"step_topic"`
+}
+
+func (q *Queries) FindStepsByState(ctx context.Context, state string) ([]FindStepsByStateRow, error) {
+	rows, err := q.db.QueryContext(ctx, findStepsByState, state)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FindStepsByStateRow{}
+	for rows.Next() {
+		var i FindStepsByStateRow
+		if err := rows.Scan(
+			&i.State,
+			&i.StepID,
+			&i.Service,
+			&i.StepName,
+			&i.StepDescription,
+			&i.StepTopic,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findWorkflowByType = `-- name: FindWorkflowByType :one
 SELECT id, type, description, created_at, updated_at FROM workflows
 WHERE type = $1 LIMIT 1

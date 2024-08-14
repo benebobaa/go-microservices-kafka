@@ -1,17 +1,18 @@
 package dto
 
-type Payment struct {
-	RefId     string  `json:"ref_id"`
-	Amount    float64 `json:"amount"`
-	AccountId string  `json:"account_id"`
+type Transaction struct {
+	Id            string  `json:"id"`
+	RefId         string  `json:"ref_id"`
+	Amount        float64 `json:"amount"`
+	Status        string  `json:"status"`
+	AccountBankId string  `json:"account_bank_id"`
 }
-
 type RefundRequest struct {
 	RefId string `json:"ref_id"`
 }
 
 type PaymentRequest struct {
-	RefId     string  `json:"ref_id"`
-	Amount    float64 `json:"amount"`
-	AccountID string  `json:"account_id"`
+	RefId         string  `json:"ref_id"`
+	Amount        float64 `json:"amount"`
+	AccountBankID string  `json:"account_bank_id"`
 }

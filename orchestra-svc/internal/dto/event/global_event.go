@@ -22,26 +22,30 @@ func (s State) String() string {
 	return [...]string{"pending", "order_created", "product_reserve_failed", "payment_failed", "payment_success"}[s]
 }
 
-type GlobalEvent[T any] struct {
-	EventID    string    `json:"event_id"`
-	InstanceID string    `json:"instance_id"`
-	EventType  string    `json:"event_type"`
-	State      string    `json:"state"`
-	Timestamp  time.Time `json:"timestamp"`
-	Source     string    `json:"source"`
-	Action     string    `json:"action"`
-	Status     string    `json:"status"`
-	StatusCode int       `json:"status_code"`
-	Payload    T         `json:"payload"`
+type BasePayload[R any, S any] struct {
+	Request  R `json:"request"`
+	Response S `json:"response"`
 }
 
-func NewGlobalEvent[T any](
-	action, status, eventType string,
-	payload T,
-) GlobalEvent[T] {
-	return GlobalEvent[T]{
+type GlobalEvent[R any, S any] struct {
+	EventID    string            `json:"event_id"`
+	InstanceID string            `json:"instance_id"`
+	EventType  string            `json:"event_type"`
+	State      string            `json:"state"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Source     string            `json:"source"`
+	Action     string            `json:"action"`
+	Status     string            `json:"status"`
+	StatusCode int               `json:"status_code"`
+	Payload    BasePayload[R, S] `json:"payload"`
+}
+
+func NewGlobalEvent[R any, S any](
+	action, status string,
+	payload BasePayload[R, S],
+) GlobalEvent[R, S] {
+	return GlobalEvent[R, S]{
 		EventID:   uuid.New().String(),
-		EventType: eventType,
 		Timestamp: time.Now(),
 		Source:    "orchestra-svc",
 		Action:    action,
@@ -50,12 +54,12 @@ func NewGlobalEvent[T any](
 	}
 }
 
-func FromJSON[T any](data []byte) (GlobalEvent[T], error) {
-	var ge GlobalEvent[T]
+func FromJSON[R any, S any](data []byte) (GlobalEvent[R, S], error) {
+	var ge GlobalEvent[R, S]
 	err := json.Unmarshal(data, &ge)
 	return ge, err
 }
 
-func (ge GlobalEvent[T]) ToJSON() ([]byte, error) {
+func (ge GlobalEvent[R, S]) ToJSON() ([]byte, error) {
 	return json.Marshal(ge)
 }

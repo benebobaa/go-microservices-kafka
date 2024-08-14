@@ -55,7 +55,7 @@ func (r *UserClient) call(suffix, method string, request any, response any) erro
 	if err != nil {
 		return errors.New("error unmarshalling HTTP response body")
 	}
-
+	
 	return nil
 }
 

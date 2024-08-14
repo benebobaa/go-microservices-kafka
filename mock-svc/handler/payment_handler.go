@@ -9,11 +9,11 @@ import (
 )
 
 type Transaction struct {
-	ID        string  `json:"id"`
-	RefID     string  `json:"ref_id"`
-	Amount    float64 `json:"amount"`
-	Status    string  `json:"status"`
-	AccountID string  `json:"account_id"`
+	ID            string  `json:"id"`
+	RefID         string  `json:"ref_id"`
+	Amount        float64 `json:"amount"`
+	Status        string  `json:"status"`
+	AccountBankID string  `json:"account_bank_id"`
 }
 
 type Balance struct {
@@ -22,9 +22,9 @@ type Balance struct {
 }
 
 type TransactionRequest struct {
-	RefID     string  `json:"ref_id" valo:"notblank,sizeMin=3"`
-	Amount    float64 `json:"amount" valo:"min=1"`
-	AccountID string  `json:"account_id" valo:"notblank,sizeMin=3"`
+	RefID         string  `json:"ref_id" valo:"notblank,sizeMin=3"`
+	Amount        float64 `json:"amount" valo:"min=1"`
+	AccountBankID string  `json:"account_bank_id" valo:"notblank,sizeMin=3"`
 }
 
 type RefundRequest struct {
@@ -72,7 +72,7 @@ func (h *PaymentHandler) CreateTransaction(c *gin.Context) {
 		}
 	}
 
-	account, ok := h.dbB[req.AccountID]
+	account, ok := h.dbB[req.AccountBankID]
 
 	if !ok {
 		c.JSON(404, gin.H{"status_code": 404, "error": "account not found"})
@@ -85,19 +85,19 @@ func (h *PaymentHandler) CreateTransaction(c *gin.Context) {
 	}
 
 	account.Balance -= req.Amount
-	h.dbB[req.AccountID] = account
+	h.dbB[account.AccountID] = account
 
 	transaction := Transaction{
-		ID:        uuid.New().String(),
-		RefID:     req.RefID,
-		Amount:    req.Amount,
-		Status:    "success",
-		AccountID: req.AccountID,
+		ID:            uuid.New().String(),
+		RefID:         req.RefID,
+		Amount:        req.Amount,
+		Status:        "success",
+		AccountBankID: req.AccountBankID,
 	}
 
 	h.dbT[transaction.ID] = transaction
 
-	c.JSON(201, gin.H{"status_code": 201, "data": req})
+	c.JSON(201, gin.H{"status_code": 201, "data": transaction})
 }
 
 func (h *PaymentHandler) RefundTransaction(c *gin.Context) {
@@ -119,7 +119,7 @@ func (h *PaymentHandler) RefundTransaction(c *gin.Context) {
 
 	for _, transaction := range h.dbT {
 		if transaction.RefID == req.RefID {
-			account, ok := h.dbB[transaction.AccountID]
+			account, ok := h.dbB[transaction.AccountBankID]
 
 			if !ok {
 				c.JSON(404, gin.H{"status_code": 404, "error": "account not found"})
@@ -132,7 +132,7 @@ func (h *PaymentHandler) RefundTransaction(c *gin.Context) {
 			}
 
 			account.Balance += transaction.Amount
-			h.dbB[transaction.AccountID] = account
+			h.dbB[transaction.AccountBankID] = account
 
 			transaction.Status = "refunded"
 			h.dbT[transaction.ID] = transaction

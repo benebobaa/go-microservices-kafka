@@ -22,7 +22,7 @@ func (h MessageHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return ni
 func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
 
-		eventMsg, err := event.FromJSON[dto.ProductRequest](msg.Value)
+		eventMsg, err := event.FromJSON[dto.ProductRequest, any](msg.Value)
 
 		if err != nil {
 			log.Println("Error parsing message: ", err)

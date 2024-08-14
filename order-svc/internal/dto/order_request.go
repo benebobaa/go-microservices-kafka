@@ -24,9 +24,9 @@ type OrderRequest struct {
 }
 
 type OrderUpdateRequest struct {
-	OrderRefID  string
-	Status      string          `json:"-"`
-	TotalAmount sql.NullFloat64 `json:"total_amount"`
+	RefID  string          `json:"ref_id"`
+	Status string          `json:"-"`
+	Amount sql.NullFloat64 `json:"amount"`
 }
 
 type OrderCancelRequest struct {
