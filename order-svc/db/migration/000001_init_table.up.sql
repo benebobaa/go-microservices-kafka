@@ -2,7 +2,7 @@
 
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
-    order_ref_id VARCHAR(255) NOT NULL,
+    ref_id VARCHAR(255) NOT NULL,
     customer_id VARCHAR(100) NOT NULL,
     username VARCHAR(50) NOT NULL,
     product_id VARCHAR(100) NOT NULL,

@@ -23,40 +23,65 @@ func NewUsecase(userClient *http_client.UserClient, orchestraProducer *producer.
 	}
 }
 
-func (u *Usecase) ValidateUserMessaging(ctx context.Context, ge event.GlobalEvent[dto.UserValidateRequest]) error {
+func (u *Usecase) ValidateUserMessaging(ctx context.Context, ge event.GlobalEvent[dto.UserValidateRequest, any]) error {
 
 	response, err := u.ValidateUser(ctx, &dto.UserValidateRequest{
-		Username: ge.Payload.Username,
+		Username: ge.Payload.Request.Username,
 	})
 
-	if err != nil {
-		return err
+	var gevent event.GlobalEvent[dto.UserValidateRequest, any]
+	basePayload := event.BasePayload[dto.UserValidateRequest, any]{
+		Request: ge.Payload.Request,
 	}
 
-	log.Println("response data: ", response.Data)
+	if err != nil || response.Error != "" {
+		if err != nil {
+			basePayload.Response = err.Error()
+		} else {
+			basePayload.Response = response.Error
+		}
 
-	gevent := event.NewGlobalEvent(
-		"get",
-		"success",
-		"user_validated",
-		"user_validation_success",
-		response.Data,
-	)
+		gevent = event.NewGlobalEvent[dto.UserValidateRequest, any](
+			"get",
+			"error",
+			"user_validation_failed",
+			basePayload,
+		)
+	} else {
+		basePayload.Response = response.Data
+		gevent = event.NewGlobalEvent[dto.UserValidateRequest, any](
+			"get",
+			"success",
+			"user_validation_success",
+			basePayload,
+		)
+	}
+
+	log.Println("check state:", gevent.State)
 
 	gevent.EventID = ge.EventID
 	gevent.InstanceID = ge.InstanceID
 	gevent.EventType = ge.EventType
-	gevent.StatusCode = response.StatusCode
-	bytes, err := gevent.ToJSON()
-
-	log.Println("gevent: ", gevent)
-	if err != nil {
-		return err
+	if response != nil {
+		gevent.StatusCode = response.StatusCode
+	} else {
+		gevent.StatusCode = 500
 	}
-	err = u.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+
+	log.Println("gevent:", gevent)
+
+	bytes, jsonErr := gevent.ToJSON()
+	if jsonErr != nil {
+		return fmt.Errorf("failed to convert event to JSON: %w", jsonErr)
+	}
+
+	sendErr := u.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+	if sendErr != nil {
+		return fmt.Errorf("failed to send message: %w", sendErr)
+	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("user validation failed: %w", err)
 	}
 
 	return nil

@@ -11,6 +11,9 @@ DROP TABLE IF EXISTS workflow_steps;
 -- State Actions
 DROP TABLE IF EXISTS state_actions;
 
+-- Payload Keys
+DROP TABLE IF EXISTS payload_keys;
+
 -- Steps
 DROP TABLE IF EXISTS steps;
 

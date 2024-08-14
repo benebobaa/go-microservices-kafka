@@ -16,19 +16,3 @@ WHERE workflow_instance_id = $1;
 -- name: FindWorkflowInstanceByID :one
 SELECT * FROM workflow_instances
 WHERE id = $1 LIMIT 1;
-
--- name: FindStepsByState :many
-SELECT DISTINCT
-    sa.state,
-    s.id AS step_id,
-    s.service AS service,
-    s.name AS step_name,
-    s.description AS step_description,
-    s.topic AS step_topic
-FROM
-    state_actions sa
-        JOIN steps s ON sa.step_id = s.id
-WHERE
-    sa.state = $1
-ORDER BY
-    sa.state;

@@ -11,7 +11,7 @@ import (
 
 type Order struct {
 	ID          int32           `json:"id"`
-	OrderRefID  string          `json:"order_ref_id"`
+	RefID       string          `json:"ref_id"`
 	CustomerID  string          `json:"customer_id"`
 	Username    string          `json:"username"`
 	ProductID   string          `json:"product_id"`

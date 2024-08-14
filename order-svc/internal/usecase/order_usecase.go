@@ -21,17 +21,20 @@ type OrderUsecase struct {
 }
 
 func NewOrderUsecase(queries sqlc.Querier, producer *producer.KafkaProducer) *OrderUsecase {
-	return &OrderUsecase{queries: queries, orchestraProducer: producer}
+	return &OrderUsecase{
+		queries:           queries,
+		orchestraProducer: producer,
+	}
 }
 
-func (oc *OrderUsecase) CreateOrder(ctx context.Context, order *dto.OrderRequest) (*sqlc.Order, error) {
+func (oc *OrderUsecase) CreateOrder(ctx context.Context, req *dto.OrderRequest) (*sqlc.Order, error) {
 
 	orderCreated, err := oc.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
-		OrderRefID: fmt.Sprintf("%s-%s", "TOKPED", uuid.New()),
-		CustomerID: order.CustomerID,
-		Username:   order.Username,
-		ProductID:  order.ProductID,
-		Quantity:   order.Quantity,
+		RefID:      fmt.Sprintf("%s-%s", "TOKPED", uuid.New()),
+		CustomerID: req.CustomerID,
+		Username:   req.Username,
+		ProductID:  req.ProductID,
+		Quantity:   req.Quantity,
 		Status:     dto.PROCESSING.String(),
 	})
 
@@ -39,11 +42,16 @@ func (oc *OrderUsecase) CreateOrder(ctx context.Context, order *dto.OrderRequest
 		return nil, err
 	}
 
+	basePayload := event.BasePayload[dto.OrderRequest, sqlc.Order]{
+		Request:  *req,
+		Response: orderCreated,
+	}
+
 	orderEvent := event.NewGlobalEvent(
 		"create",
 		"success",
 		"order_process",
-		orderCreated,
+		basePayload,
 	)
 	orderEvent.State = "order_created"
 	orderEvent.StatusCode = 201
@@ -62,81 +70,59 @@ func (oc *OrderUsecase) CreateOrder(ctx context.Context, order *dto.OrderRequest
 	return &orderCreated, nil
 }
 
-func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelRequest) (*sqlc.Order, error) {
-	order, err := oc.queries.FindOrderByID(ctx, req.OrderID)
+func (oc *OrderUsecase) CancelOrder(ctx context.Context, username string, id int) (*sqlc.Order, error) {
+	order, err := oc.queries.FindOrderByID(ctx, int32(id))
+
 	if err != nil {
 		return nil, err
-	}
-
-	if req.Username != order.Username {
-		return nil, ErrUnauthorizeCancelOrder
 	}
 
 	if order.Status != dto.COMPLETE.String() {
 		return nil, ErrCannotCancelOrder
 	}
 
-	cancelledOrder, err := oc.queries.UpdateOrder(ctx, sqlc.UpdateOrderParams{
-		Status:      dto.CANCEL_PROCESSING.String(),
-		TotalAmount: order.TotalAmount,
-		OrderRefID:  order.OrderRefID,
+	if username != order.Username {
+		return nil, ErrUnauthorizeCancelOrder
+	}
+
+	return oc.UpdateOrderMessaging(ctx, "order_cancel_process", &dto.OrderUpdateRequest{
+		RefID:  order.RefID,
+		Status: dto.CANCEL_PROCESSING.String(),
+		Amount: order.TotalAmount,
 	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	orderEvent := event.NewGlobalEvent(
-		"update",
-		"success",
-		"order_cancel",
-		cancelledOrder,
-	)
-
-	orderEvent.State = "ORDER_CANCELLED"
-
-	bytes, err := orderEvent.ToJSON()
-	if err != nil {
-		return nil, err
-	}
-
-	err = oc.orchestraProducer.SendMessage(uuid.New().String(), bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cancelledOrder, nil
 }
 
-func (oc *OrderUsecase) UpdateOrder(ctx context.Context, updateOrder *dto.OrderUpdateRequest) (*sqlc.Order, error) {
-
-	count, err := oc.queries.CountByID(ctx, updateOrder.OrderRefID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if count < 1 {
-		return nil, errors.New("order id not found")
-	}
+func (oc *OrderUsecase) UpdateOrderMessaging(ctx context.Context, eventType string, req *dto.OrderUpdateRequest) (*sqlc.Order, error) {
 
 	updatedOrder, err := oc.queries.UpdateOrder(ctx, sqlc.UpdateOrderParams{
-		Status:      updateOrder.Status,
-		TotalAmount: updateOrder.TotalAmount,
-		OrderRefID:  updateOrder.OrderRefID,
+		Status:      req.Status,
+		TotalAmount: req.Amount,
+		RefID:       req.RefID,
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
+	basePayload := event.BasePayload[dto.OrderUpdateRequest, sqlc.Order]{
+		Request:  *req,
+		Response: updatedOrder,
+	}
+
 	orderEvent := event.NewGlobalEvent(
-		"update",
+		"create",
 		"success",
-		"order_updated",
-		updatedOrder,
+		"order_process",
+		basePayload,
 	)
 
+	orderEvent.State = "order_created"
+	orderEvent.StatusCode = 200
+
+	if eventType != "" {
+		orderEvent.EventType = eventType
+		orderEvent.State = "order_cancelled"
+	}
 	bytes, err := orderEvent.ToJSON()
 
 	if err != nil {
@@ -149,5 +135,5 @@ func (oc *OrderUsecase) UpdateOrder(ctx context.Context, updateOrder *dto.OrderU
 		return nil, err
 	}
 
-	return nil, nil
+	return &updatedOrder, nil
 }

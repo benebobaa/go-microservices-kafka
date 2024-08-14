@@ -14,3 +14,10 @@ type Order struct {
 	Status      string         `json:"status"`
 	TotalAmount sql.NullString `json:"total_amount"`
 }
+
+type OrderRequest struct {
+	ProductID  string `json:"product_id"`
+	Quantity   int32  `json:"quantity"`
+	CustomerID string `json:"-"`
+	Username   string `json:"-"`
+}
