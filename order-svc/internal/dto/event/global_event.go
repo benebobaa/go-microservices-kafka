@@ -22,6 +22,17 @@ func (s State) String() string {
 	return [...]string{"PENDING", "PRODUCT_RESERVE_FAILED", "payment_failed", "payment_success"}[s]
 }
 
+type EventType int
+
+const (
+	ORDER_PROCESS State = iota
+	ORDER_CANCEL_PROCESS
+)
+
+func (e EventType) String() string {
+	return [...]string{"order_process", "order_cancel_process"}[e]
+}
+
 type BasePayload[R any, S any] struct {
 	Request  R `json:"request"`
 	Response S `json:"response"`

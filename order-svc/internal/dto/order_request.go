@@ -1,7 +1,5 @@
 package dto
 
-import "database/sql"
-
 type Status int
 
 const (
@@ -24,9 +22,10 @@ type OrderRequest struct {
 }
 
 type OrderUpdateRequest struct {
-	RefID  string          `json:"ref_id"`
-	Status string          `json:"-"`
-	Amount sql.NullFloat64 `json:"amount"`
+	RefID     string  `json:"ref_id"`
+	Amount    float64 `json:"amount"`
+	Status    string  `json:"-"`
+	EventType string  `json:"-"`
 }
 
 type OrderCancelRequest struct {
