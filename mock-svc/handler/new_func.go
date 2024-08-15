@@ -19,8 +19,16 @@ func NewUserHandler() *UserHandler {
 		Email:         "bene@beneboba.me",
 	}
 
+	user3 := User{
+		ID:            "USER-003",
+		Username:      "astrovim",
+		AccountBankID: "AC-003",
+		Email:         "admin@beneboba.me",
+	}
+
 	db[user1.ID] = user1
 	db[user2.ID] = user2
+	db[user3.ID] = user3
 
 	return &UserHandler{
 		db: db,
@@ -40,7 +48,7 @@ func NewProductHandler() *ProductHandler {
 	product2 := Product{
 		ID:    "P-002",
 		Name:  "Product 2",
-		Stock: 5,
+		Stock: 10,
 		Price: 2000,
 	}
 
@@ -68,8 +76,13 @@ func NewPaymentHandler() *PaymentHandler {
 		Balance:   100000,
 	}
 
+	balance3 := Balance{
+		AccountID: "AC-003",
+		Balance:   5000,
+	}
 	dbb[balance1.AccountID] = balance1
 	dbb[balance2.AccountID] = balance2
+	dbb[balance3.AccountID] = balance3
 
 	return &PaymentHandler{
 		dbT:   dbt,

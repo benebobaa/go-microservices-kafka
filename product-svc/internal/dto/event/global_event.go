@@ -9,15 +9,13 @@ import (
 type State int
 
 const (
-	PENDING State = iota
-	ORDER_CREATED
-	PRODUCT_RESERVE_FAILED
+	USER_VALIDATION_SUCCESS State = iota
 	PAYMENT_FAILED
-	PAYMENT_SUCCESS
+	ORDER_CANCEL
 )
 
 func (s State) String() string {
-	return [...]string{"PENDING", "ORDER_CREATED", "PRODUCT_RESERVE_FAILED", "PAYMENT_FAILED", "PAYMENT_SUCCESS"}[s]
+	return [...]string{"user_validation_success", "payment_failed", "order_cancel"}[s]
 }
 
 type BasePayload[R any, S any] struct {

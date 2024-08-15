@@ -30,6 +30,7 @@ CREATE TABLE payload_keys (
 -- State_Actions
 CREATE TABLE state_actions (
     id SERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL REFERENCES workflows(type),
     state VARCHAR(255) NOT NULL,
     step_id INTEGER NOT NULL REFERENCES steps(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

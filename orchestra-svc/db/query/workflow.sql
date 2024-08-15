@@ -6,7 +6,7 @@ WHERE type = $1 LIMIT 1;
 -- name: FindPayloadKeysByStepID :many
 SELECT key FROM payload_keys WHERE step_id = $1;
 
--- name: FindStepsByState :many
+-- name: FindStepsByTypeAndState :many
 SELECT DISTINCT
     sa.state,
     s.id AS step_id,
@@ -18,7 +18,8 @@ FROM
     state_actions sa
         JOIN steps s ON sa.step_id = s.id
 WHERE
-    sa.state = $1
+    sa.type = $1 AND
+    sa.state = $2
 ORDER BY
     sa.state;
 

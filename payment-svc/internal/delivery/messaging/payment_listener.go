@@ -29,9 +29,17 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 			log.Println("Error parsing message: ", err)
 		}
 
-		err = h.u.ProcessPaymentMessaging(sess.Context(), eventMsg)
-		if err != nil {
-			log.Println("Error processing message: ", err)
+		switch eventMsg.State {
+		case event.PRODUCT_RESERVATION_SUCCESS.String():
+			err := h.u.ProcessPaymentMessaging(sess.Context(), eventMsg)
+			if err != nil {
+				log.Println("Error processing payment: ", err)
+			}
+		case event.ORDER_CANCEL.String():
+			err := h.u.RefundPaymentMessaging(sess.Context(), eventMsg)
+			if err != nil {
+				log.Println("Error refunding payment: ", err)
+			}
 		}
 
 		sess.MarkMessage(msg, "")

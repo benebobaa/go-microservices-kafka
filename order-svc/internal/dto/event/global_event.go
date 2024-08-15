@@ -12,20 +12,18 @@ import (
 type State int
 
 const (
-	PENDING State = iota
-	PRODUCT_RESERVE_FAILED
-	PAYMENT_FAILED
-	PAYMENT_SUCCESS
+	PAYMENT_SUCCESS State = iota
+	PRODUCT_RELEASE_SUCCESS
 )
 
 func (s State) String() string {
-	return [...]string{"PENDING", "PRODUCT_RESERVE_FAILED", "payment_failed", "payment_success"}[s]
+	return [...]string{"payment_success", "product_release_success"}[s]
 }
 
 type EventType int
 
 const (
-	ORDER_PROCESS State = iota
+	ORDER_PROCESS EventType = iota
 	ORDER_CANCEL_PROCESS
 )
 
@@ -52,12 +50,13 @@ type GlobalEvent[R any, S any] struct {
 }
 
 func NewGlobalEvent[R any, S any](
-	action, status, eventType string,
+	action, status, state, eventType string,
 	payload BasePayload[R, S],
 ) GlobalEvent[R, S] {
 	return GlobalEvent[R, S]{
 		EventID:    uuid.New().String(),
 		InstanceID: fmt.Sprintf("I-%s", pkg.GenerateRandom6Char()),
+		State:      state,
 		EventType:  eventType,
 		Timestamp:  time.Now(),
 		Source:     "order-svc",

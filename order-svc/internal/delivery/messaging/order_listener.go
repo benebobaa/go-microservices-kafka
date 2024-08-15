@@ -30,10 +30,20 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 			log.Println("failed parse event: ", err.Error())
 		}
 
-		err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+		switch eventMsg.State {
+		case event.PAYMENT_SUCCESS.String():
+			eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+			err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+			if err != nil {
+				log.Println("failed update order: ", err.Error())
+			}
 
-		if err != nil {
-			log.Println("failed update order: ", err.Error())
+		case event.PRODUCT_RELEASE_SUCCESS.String():
+			eventMsg.Payload.Request.Status = dto.FAILED.String()
+			err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+			if err != nil {
+				log.Println("failed update order: ", err.Error())
+			}
 		}
 
 		sess.MarkMessage(msg, "")

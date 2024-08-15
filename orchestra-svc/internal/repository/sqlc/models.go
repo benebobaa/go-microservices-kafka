@@ -18,6 +18,7 @@ type PayloadKey struct {
 
 type StateAction struct {
 	ID        int32        `json:"id"`
+	Type      string       `json:"type"`
 	State     string       `json:"state"`
 	StepID    int32        `json:"step_id"`
 	CreatedAt sql.NullTime `json:"created_at"`

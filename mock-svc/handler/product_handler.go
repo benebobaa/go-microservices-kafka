@@ -14,9 +14,16 @@ type Product struct {
 	Price int    `json:"price"`
 }
 
+type ProductResponseWithAmount struct {
+	ProductResponse
+	Amount float64 `json:"amount"`
+}
+
 type ProductResponse struct {
-	Product Product `json:"product"`
-	Amount  float64 `json:"amount"`
+	ID       string `json:"product_id"`
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+	Price    int    `json:"price"`
 }
 
 type ProductRequest struct {
@@ -72,9 +79,14 @@ func (h *ProductHandler) ReserveProduct(c *gin.Context) {
 
 	h.db[req.ProductID] = product
 
-	response := ProductResponse{
-		Product: product,
-		Amount:  float64(req.Quantity * product.Price),
+	response := ProductResponseWithAmount{
+		ProductResponse: ProductResponse{
+			ID:       product.ID,
+			Name:     product.Name,
+			Quantity: req.Quantity,
+			Price:    product.Price,
+		},
+		Amount: float64(req.Quantity * product.Price),
 	}
 
 	c.JSON(200, gin.H{"status_code": 200, "data": response})
@@ -107,5 +119,12 @@ func (h *ProductHandler) ReleaseProduct(c *gin.Context) {
 	product.Stock += req.Quantity
 	h.db[req.ProductID] = product
 
-	c.JSON(200, gin.H{"status_code": 200, "data": product})
+	response := ProductResponse{
+		ID:       product.ID,
+		Name:     product.Name,
+		Quantity: req.Quantity,
+		Price:    product.Price,
+	}
+
+	c.JSON(200, gin.H{"status_code": 200, "data": response})
 }
