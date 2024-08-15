@@ -10,5 +10,5 @@ const (
 )
 
 func (s Status) String() string {
-	return [...]string{"PENDING", "IN_PROGRESS", "SUCCESS", "FAILED"}[s]
+	return [...]string{"pending", "in_progress", "success", "failed"}[s]
 }

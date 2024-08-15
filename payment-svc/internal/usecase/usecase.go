@@ -3,12 +3,13 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"payment-svc/internal/dto"
 	"payment-svc/internal/dto/event"
 	"payment-svc/pkg/http_client"
 	"payment-svc/pkg/producer"
+
+	"github.com/google/uuid"
 )
 
 type Usecase struct {
@@ -91,7 +92,7 @@ func (u *Usecase) ProcessPaymentMessaging(ctx context.Context, ge event.GlobalEv
 
 func (u *Usecase) ProcessPayment(ctx context.Context, req *dto.PaymentRequest) (*dto.BaseResponse[dto.Transaction], error) {
 	var response dto.BaseResponse[dto.Transaction]
-	err := u.userClient.POST("/payment", req, &response)
+	err := u.userClient.POST("", req, &response)
 
 	if err != nil {
 		return nil, err

@@ -52,9 +52,11 @@ type WorkflowInstance struct {
 
 type WorkflowInstanceStep struct {
 	ID                 int32          `json:"id"`
+	EventID            string         `json:"event_id"`
 	WorkflowInstanceID string         `json:"workflow_instance_id"`
 	StepID             int32          `json:"step_id"`
 	Status             string         `json:"status"`
 	EventMessage       sql.NullString `json:"event_message"`
-	CreatedAt          sql.NullTime   `json:"created_at"`
+	StartedAt          sql.NullTime   `json:"started_at"`
+	CompletedAt        sql.NullTime   `json:"completed_at"`
 }

@@ -3,12 +3,13 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"product-svc/internal/dto"
 	"product-svc/internal/dto/event"
 	"product-svc/pkg/http_client"
 	"product-svc/pkg/producer"
+
+	"github.com/google/uuid"
 )
 
 type Usecase struct {
@@ -90,7 +91,7 @@ func (u *Usecase) ReserveProductMessaging(ctx context.Context, ge event.GlobalEv
 func (u *Usecase) ReserveProduct(ctx context.Context, req *dto.ProductRequest) (*dto.BaseResponse[dto.ProductResponse], error) {
 	var response dto.BaseResponse[dto.ProductResponse]
 	log.Println("ReserveProduct: ", req)
-	err := u.userClient.POST("/products/reserve", req, &response)
+	err := u.userClient.POST("/reserve", req, &response)
 
 	log.Println("ReserveProduct response: ", response)
 	if err != nil {

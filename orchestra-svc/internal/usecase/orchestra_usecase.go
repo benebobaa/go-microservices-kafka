@@ -11,6 +11,7 @@ import (
 	"orchestra-svc/internal/repository/cache"
 	"orchestra-svc/internal/repository/sqlc"
 	"orchestra-svc/pkg/producer"
+	"time"
 )
 
 type OrchestraUsecase struct {
@@ -56,7 +57,43 @@ func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.G
 		return err
 	}
 
+	eventMsgBytes, err := eventMsg.ToJSON()
+	if err != nil {
+		log.Println("Error when parse message: ", err.Error())
+		return err
+	}
+
+	stepExists, err := o.queries.CheckIfInstanceStepExists(ctx, eventMsg.EventID)
+	if err != nil {
+		log.Println("Error when check instance step exists: ", err.Error())
+		return err
+	}
+
+	if !stepExists {
+		log.Println("-> step not exists <-")
+	} else {
+		err = o.queries.UpdateWorkflowInstanceStep(ctx, sqlc.UpdateWorkflowInstanceStepParams{
+			Status: eventMsg.Status,
+			EventMessage: sql.NullString{
+				String: string(eventMsgBytes),
+				Valid:  true,
+			},
+			CompletedAt: sql.NullTime{
+				Time:  time.Now(),
+				Valid: true,
+			},
+			EventID: eventMsg.EventID,
+		})
+
+		if err != nil {
+			log.Println("Error when update instance step: ", err.Error())
+			return err
+		}
+	}
+
 	if eventMsg.State == event.ORDER_CREATED.String() {
+		// this mean init process order process
+
 		instance, err = o.queries.CreateWorkflowInstance(ctx, sqlc.CreateWorkflowInstanceParams{
 			ID:         eventMsg.InstanceID,
 			WorkflowID: wf.ID,
@@ -67,15 +104,27 @@ func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.G
 			log.Println("Error when create workflow instance: ", err.Error())
 			return err
 		}
-	}
+	} else if eventMsg.State == event.ORDER_CANCELLED.String() {
+		// this mean init process for order cancel
 
-	if eventMsg.InstanceID != "" {
+		instance, err = o.queries.CreateWorkflowInstance(ctx, sqlc.CreateWorkflowInstanceParams{
+			ID:         eventMsg.InstanceID,
+			WorkflowID: wf.ID,
+			Status:     dto.PENDING.String(),
+		})
+
+		if err != nil {
+			log.Println("Error when create workflow instance: ", err.Error())
+			return err
+		}
+	} else {
+
 		instance, err = o.queries.FindWorkflowInstanceByID(ctx, eventMsg.InstanceID)
-	}
 
-	if err != nil {
-		log.Println("Error when find workflow instance: ", err.Error())
-		return err
+		if err != nil {
+			log.Println("Error when find workflow instance: ", err.Error())
+			return err
+		}
 	}
 
 	steps, err := o.queries.FindStepsByState(ctx, eventMsg.State)
@@ -92,9 +141,6 @@ func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.G
 		var basePayload any
 		keys, err := o.queries.FindPayloadKeysByStepID(ctx, step.StepID)
 
-		log.Println("step: ", step)
-		log.Println("keys: ", keys)
-
 		payloadCache, _ := o.cache.Get(eventMsg.InstanceID)
 
 		for _, key := range keys {
@@ -110,7 +156,7 @@ func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.G
 
 		gevent := event.NewGlobalEvent[any, any](
 			"redirect",
-			"success",
+			eventMsg.Status,
 			event.BasePayload[any, any]{
 				Request: basePayload,
 			},
@@ -118,7 +164,7 @@ func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.G
 
 		gevent.State = eventMsg.State
 		gevent.EventType = eventMsg.EventType
-		gevent.StatusCode = 200
+		gevent.StatusCode = eventMsg.StatusCode
 		gevent.InstanceID = instance.ID
 		bytes, err := gevent.ToJSON()
 
@@ -128,13 +174,15 @@ func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.G
 		}
 
 		_, err = o.queries.CreateWorkflowInstanceStep(ctx, sqlc.CreateWorkflowInstanceStepParams{
-			WorkflowInstanceID: eventMsg.InstanceID,
+			WorkflowInstanceID: gevent.InstanceID,
+			EventID:            gevent.EventID,
 			Status:             dto.IN_PROGRESS.String(),
 			StepID:             step.StepID,
 			EventMessage: sql.NullString{
 				String: string(bytes),
 				Valid:  true,
 			},
+			StartedAt: sql.NullTime{Time: time.Now(), Valid: true},
 		})
 
 		if err != nil {

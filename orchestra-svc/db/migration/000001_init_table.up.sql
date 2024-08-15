@@ -48,9 +48,11 @@ CREATE TABLE workflow_instances (
 -- Workflow Instance Steps
 CREATE TABLE workflow_instance_steps (
     id SERIAL PRIMARY KEY,
+    event_id VARCHAR NOT NULL,
     workflow_instance_id VARCHAR NOT NULL REFERENCES workflow_instances(id),
     step_id INTEGER NOT NULL REFERENCES steps(id),
     status VARCHAR(20) NOT NULL,
     event_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE
 );
