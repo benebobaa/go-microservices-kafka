@@ -7,11 +7,11 @@ const (
 	PROCESSING
 	CANCEL_PROCESSING
 	COMPLETE
-	FAILED
+	CANCELLED
 )
 
 func (s Status) String() string {
-	return [...]string{"PENDING", "PROCESSING", "CANCEL_PROCESSING", "COMPLETE", "FAILED"}[s]
+	return [...]string{"PENDING", "PROCESSING", "CANCEL_PROCESSING", "COMPLETE", "CANCELLED"}[s]
 }
 
 type OrderRequest struct {

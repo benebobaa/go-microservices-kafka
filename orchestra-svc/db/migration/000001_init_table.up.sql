@@ -50,6 +50,8 @@ CREATE TABLE workflow_instances (
 CREATE TABLE workflow_instance_steps (
     id SERIAL PRIMARY KEY,
     event_id VARCHAR NOT NULL,
+    status_code INTEGER,
+    response VARCHAR,
     workflow_instance_id VARCHAR NOT NULL REFERENCES workflow_instances(id),
     step_id INTEGER NOT NULL REFERENCES steps(id),
     status VARCHAR(20) NOT NULL,

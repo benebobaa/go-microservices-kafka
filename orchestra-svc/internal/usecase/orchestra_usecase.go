@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
@@ -71,13 +72,17 @@ func (o *OrchestraUsecase) getCachePayload(instanceID string, source string, res
 }
 
 func (o *OrchestraUsecase) handleInstanceStep(ctx context.Context, eventMsg event.GlobalEvent[any, any]) error {
-	insStepExists, err := o.queries.CheckIfInstanceStepExists(ctx, eventMsg.EventID)
+	instanceStep, err := o.queries.FindInstanceStepByEventID(ctx, eventMsg.EventID)
 	if err != nil {
-		return fmt.Errorf("check instance step exists: %w", err)
+		log.Println("Error find instance step by event id: ", err)
+		//return fmt.Errorf("check instance step exists: %w", err)
 	}
 
-	if !insStepExists {
-		log.Println("Instance step does not exist")
+	// TODO: should retry when the status is 500
+	// send message again based on instance step status
+	// max retry 3 times, if still failed, mark the instance step as failed
+	if eventMsg.StatusCode >= 500 {
+		log.Println("err server 500: ", instanceStep.StepID)
 	}
 
 	eventMsgBytes, err := eventMsg.ToJSON()
@@ -85,8 +90,16 @@ func (o *OrchestraUsecase) handleInstanceStep(ctx context.Context, eventMsg even
 		return fmt.Errorf("parse message: %w", err)
 	}
 
+	responseMsg, err := json.Marshal(eventMsg.Payload.Response)
+
+	if err != nil {
+		return fmt.Errorf("parse response: %w", err)
+	}
+
 	return o.queries.UpdateWorkflowInstanceStep(ctx, sqlc.UpdateWorkflowInstanceStepParams{
 		Status:       eventMsg.Status,
+		StatusCode:   sql.NullInt32{Int32: int32(eventMsg.StatusCode), Valid: true},
+		Response:     sql.NullString{String: string(responseMsg), Valid: true},
 		EventMessage: sql.NullString{String: string(eventMsgBytes), Valid: true},
 		CompletedAt:  sql.NullTime{Time: time.Now(), Valid: true},
 		EventID:      eventMsg.EventID,

@@ -38,8 +38,8 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 				log.Println("failed update order: ", err.Error())
 			}
 
-		case event.PRODUCT_RELEASE_SUCCESS.String(), event.USER_VALIDATION_FAILED.String():
-			eventMsg.Payload.Request.Status = dto.FAILED.String()
+		case event.PRODUCT_RELEASE_SUCCESS.String(), event.USER_VALIDATION_FAILED.String(), event.REFUND_SUCCESS.String():
+			eventMsg.Payload.Request.Status = dto.CANCELLED.String()
 			err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
 			if err != nil {
 				log.Println("failed update order: ", err.Error())

@@ -34,14 +34,20 @@ VALUES
 -- name: CheckIfInstanceStepExists :one
 SELECT EXISTS(SELECT 1 FROM workflow_instance_steps WHERE event_id = $1) AS exists;
 
+-- name: FindInstanceStepByEventID :one
+SELECT * FROM workflow_instance_steps
+WHERE event_id = $1 LIMIT 1;
+
 -- name: UpdateWorkflowInstanceStep :exec
 UPDATE workflow_instance_steps
 SET
     status = $1,
     event_message = $2,
-    completed_at = $3
+    status_code = $3,
+    response = $4,
+    completed_at = $5
 WHERE
-    event_id = $4;
+    event_id = $6;
 
 -- name: FindInstanceStepByID :many
 SELECT * FROM workflow_instance_steps
