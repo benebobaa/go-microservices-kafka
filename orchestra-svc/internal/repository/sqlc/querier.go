@@ -9,13 +9,17 @@ import (
 )
 
 type Querier interface {
+	CheckIfInstanceStepExists(ctx context.Context, eventID string) (bool, error)
 	CreateWorkflowInstance(ctx context.Context, arg CreateWorkflowInstanceParams) (WorkflowInstance, error)
 	CreateWorkflowInstanceStep(ctx context.Context, arg CreateWorkflowInstanceStepParams) (WorkflowInstanceStep, error)
 	FindInstanceStepByID(ctx context.Context, workflowInstanceID string) ([]WorkflowInstanceStep, error)
 	FindPayloadKeysByStepID(ctx context.Context, stepID int32) ([]string, error)
-	FindStepsByState(ctx context.Context, state string) ([]FindStepsByStateRow, error)
+	FindStepsByTypeAndState(ctx context.Context, arg FindStepsByTypeAndStateParams) ([]FindStepsByTypeAndStateRow, error)
 	FindWorkflowByType(ctx context.Context, type_ string) (Workflow, error)
 	FindWorkflowInstanceByID(ctx context.Context, id string) (WorkflowInstance, error)
+	FindWorkflowInstanceByTypeAndID(ctx context.Context, arg FindWorkflowInstanceByTypeAndIDParams) ([]FindWorkflowInstanceByTypeAndIDRow, error)
+	UpdateWorkflowInstance(ctx context.Context, arg UpdateWorkflowInstanceParams) error
+	UpdateWorkflowInstanceStep(ctx context.Context, arg UpdateWorkflowInstanceStepParams) error
 }
 
 var _ Querier = (*Queries)(nil)

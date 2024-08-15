@@ -8,8 +8,11 @@ type Product struct {
 }
 
 type ProductResponse struct {
-	Product Product `json:"product"`
-	Amount  float64 `json:"amount"`
+	Id       string  `json:"product_id"`
+	Name     string  `json:"name"`
+	Quantity int     `json:"quantity"`
+	Price    float64 `json:"price"`
+	Amount   float64 `json:"amount"`
 }
 
 type ProductRequest struct {

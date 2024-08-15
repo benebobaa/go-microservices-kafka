@@ -52,10 +52,10 @@ func (oc *OrderUsecase) CreateOrder(ctx context.Context, req *dto.OrderRequest) 
 	orderEvent := event.NewGlobalEvent(
 		"create",
 		"success",
-		"order_process",
+		"order_created",
+		event.ORDER_PROCESS.String(),
 		basePayload,
 	)
-	orderEvent.State = "order_created"
 	orderEvent.StatusCode = 201
 	bytes, err := orderEvent.ToJSON()
 
@@ -78,7 +78,7 @@ func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelReq
 		return nil, err
 	}
 
-	if order.Status == dto.COMPLETE.String() {
+	if order.Status != dto.COMPLETE.String() {
 		return nil, ErrCannotCancelOrder
 	}
 
@@ -106,11 +106,11 @@ func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelReq
 	orderEvent := event.NewGlobalEvent(
 		"update",
 		"success",
+		"order_cancel",
 		event.ORDER_CANCEL_PROCESS.String(),
 		basePayload,
 	)
 
-	orderEvent.State = "order_canceled"
 	orderEvent.StatusCode = 200
 
 	bytes, err := orderEvent.ToJSON()
@@ -127,20 +127,11 @@ func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelReq
 }
 
 func (oc *OrderUsecase) UpdateOrderMessaging(ctx context.Context, req event.GlobalEvent[dto.OrderUpdateRequest, any]) error {
-	log.Println("req payload: ", req.Payload)
-
-	var status string
-
-	if req.Status == "success" {
-		status = dto.COMPLETE.String()
-	} else {
-		status = dto.FAILED.String()
-	}
 
 	updatedOrder, err := oc.UpdateOrder(ctx, &dto.OrderUpdateRequest{
 		RefID:     req.Payload.Request.RefID,
 		Amount:    req.Payload.Request.Amount,
-		Status:    status,
+		Status:    req.Payload.Request.Status,
 		EventType: req.EventType,
 	})
 
@@ -156,11 +147,13 @@ func (oc *OrderUsecase) UpdateOrderMessaging(ctx context.Context, req event.Glob
 	orderEvent := event.NewGlobalEvent(
 		"update",
 		"success",
+		"order_updated",
 		req.EventType,
 		basePayload,
 	)
 
-	orderEvent.State = "order_updated"
+	orderEvent.EventID = req.EventID
+	orderEvent.InstanceID = req.InstanceID
 	orderEvent.StatusCode = 200
 
 	bytes, err := orderEvent.ToJSON()

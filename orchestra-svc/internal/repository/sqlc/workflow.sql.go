@@ -36,7 +36,7 @@ func (q *Queries) FindPayloadKeysByStepID(ctx context.Context, stepID int32) ([]
 	return items, nil
 }
 
-const findStepsByState = `-- name: FindStepsByState :many
+const findStepsByTypeAndState = `-- name: FindStepsByTypeAndState :many
 SELECT DISTINCT
     sa.state,
     s.id AS step_id,
@@ -48,12 +48,18 @@ FROM
     state_actions sa
         JOIN steps s ON sa.step_id = s.id
 WHERE
-    sa.state = $1
+    sa.type = $1 AND
+    sa.state = $2
 ORDER BY
     sa.state
 `
 
-type FindStepsByStateRow struct {
+type FindStepsByTypeAndStateParams struct {
+	Type  string `json:"type"`
+	State string `json:"state"`
+}
+
+type FindStepsByTypeAndStateRow struct {
 	State           string `json:"state"`
 	StepID          int32  `json:"step_id"`
 	Service         string `json:"service"`
@@ -62,15 +68,15 @@ type FindStepsByStateRow struct {
 	StepTopic       string `json:"step_topic"`
 }
 
-func (q *Queries) FindStepsByState(ctx context.Context, state string) ([]FindStepsByStateRow, error) {
-	rows, err := q.db.QueryContext(ctx, findStepsByState, state)
+func (q *Queries) FindStepsByTypeAndState(ctx context.Context, arg FindStepsByTypeAndStateParams) ([]FindStepsByTypeAndStateRow, error) {
+	rows, err := q.db.QueryContext(ctx, findStepsByTypeAndState, arg.Type, arg.State)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []FindStepsByStateRow{}
+	items := []FindStepsByTypeAndStateRow{}
 	for rows.Next() {
-		var i FindStepsByStateRow
+		var i FindStepsByTypeAndStateRow
 		if err := rows.Scan(
 			&i.State,
 			&i.StepID,
