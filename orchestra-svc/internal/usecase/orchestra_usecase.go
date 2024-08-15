@@ -30,6 +30,7 @@ func NewOrchestraUsecase(q sqlc.Querier, p *producer.KafkaProducer, c *cache.Pay
 }
 
 func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.GlobalEvent[any, any]) error {
+
 	cachePayload, err := o.getCachePayload(eventMsg.InstanceID, eventMsg.Source, eventMsg.Payload.Response)
 	if err != nil {
 		return err
@@ -178,6 +179,7 @@ func (o *OrchestraUsecase) processDone(ctx context.Context, eventType, instanceI
 
 func (o *OrchestraUsecase) processStep(ctx context.Context, eventMsg event.GlobalEvent[any, any], instance sqlc.WorkflowInstance, step sqlc.FindStepsByTypeAndStateRow, cachePayload map[string]any) error {
 	keys, err := o.queries.FindPayloadKeysByStepID(ctx, step.StepID)
+
 	if err != nil {
 		return fmt.Errorf("find payload keys: %w", err)
 	}

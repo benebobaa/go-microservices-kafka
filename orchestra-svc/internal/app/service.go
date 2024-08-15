@@ -18,8 +18,7 @@ func (app *App) startService(userProductProducer *producer.KafkaProducer) error 
 
 	app.msg = messaging.NewMessageHandler(orc)
 
-	wfu := usecase.NewWorkflowUsecase(s)
-	wfh := http.NewWorkflowHandler(wfu)
+	wfh := http.NewWorkflowHandler()
 
 	wfGroupV1 := app.gin.Group("/api/v1/workflow")
 	wfh.RegisterRoutes(wfGroupV1)
