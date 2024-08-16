@@ -19,6 +19,7 @@ type Querier interface {
 	FindWorkflowByType(ctx context.Context, type_ string) (Workflow, error)
 	FindWorkflowInstanceByID(ctx context.Context, id string) (WorkflowInstance, error)
 	FindWorkflowInstanceByTypeAndID(ctx context.Context, arg FindWorkflowInstanceByTypeAndIDParams) ([]FindWorkflowInstanceByTypeAndIDRow, error)
+	FindWorkflowInstanceStepsByEventIDAndInsID(ctx context.Context, arg FindWorkflowInstanceStepsByEventIDAndInsIDParams) (FindWorkflowInstanceStepsByEventIDAndInsIDRow, error)
 	UpdateWorkflowInstance(ctx context.Context, arg UpdateWorkflowInstanceParams) error
 	UpdateWorkflowInstanceStep(ctx context.Context, arg UpdateWorkflowInstanceStepParams) error
 }

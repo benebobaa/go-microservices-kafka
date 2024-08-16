@@ -226,6 +226,42 @@ func (q *Queries) FindWorkflowInstanceByTypeAndID(ctx context.Context, arg FindW
 	return items, nil
 }
 
+const findWorkflowInstanceStepsByEventIDAndInsID = `-- name: FindWorkflowInstanceStepsByEventIDAndInsID :one
+SELECT wis.event_id, wis.workflow_instance_id, wis.status_code, wis.status, wis.event_message,
+       s.topic
+FROM workflow_instance_steps wis
+         JOIN steps s on wis.step_id = s.id
+WHERE event_id = $1 AND workflow_instance_id = $2
+`
+
+type FindWorkflowInstanceStepsByEventIDAndInsIDParams struct {
+	EventID            string `json:"event_id"`
+	WorkflowInstanceID string `json:"workflow_instance_id"`
+}
+
+type FindWorkflowInstanceStepsByEventIDAndInsIDRow struct {
+	EventID            string         `json:"event_id"`
+	WorkflowInstanceID string         `json:"workflow_instance_id"`
+	StatusCode         sql.NullInt32  `json:"status_code"`
+	Status             string         `json:"status"`
+	EventMessage       sql.NullString `json:"event_message"`
+	Topic              string         `json:"topic"`
+}
+
+func (q *Queries) FindWorkflowInstanceStepsByEventIDAndInsID(ctx context.Context, arg FindWorkflowInstanceStepsByEventIDAndInsIDParams) (FindWorkflowInstanceStepsByEventIDAndInsIDRow, error) {
+	row := q.db.QueryRowContext(ctx, findWorkflowInstanceStepsByEventIDAndInsID, arg.EventID, arg.WorkflowInstanceID)
+	var i FindWorkflowInstanceStepsByEventIDAndInsIDRow
+	err := row.Scan(
+		&i.EventID,
+		&i.WorkflowInstanceID,
+		&i.StatusCode,
+		&i.Status,
+		&i.EventMessage,
+		&i.Topic,
+	)
+	return i, err
+}
+
 const updateWorkflowInstance = `-- name: UpdateWorkflowInstance :exec
 UPDATE workflow_instances
 SET

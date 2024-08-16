@@ -30,6 +30,8 @@ func NewOrchestraUsecase(q sqlc.Querier, p *producer.KafkaProducer, c *cache.Pay
 	}
 }
 
+func (o *OrchestraUsecase) EditRetry(ctx context.Context) {}
+
 func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.GlobalEvent[any, any]) error {
 
 	cachePayload, err := o.getCachePayload(eventMsg.InstanceID, eventMsg.Source, eventMsg.Payload.Response)
@@ -63,9 +65,9 @@ func (o *OrchestraUsecase) getCachePayload(instanceID string, source string, res
 		cachePayload = make(map[string]any)
 	}
 
-	if _, exists := cachePayload[source]; !exists {
-		cachePayload[source] = response
-	}
+	//if _, exists := cachePayload[source]; !exists {
+	cachePayload[source] = response
+	//}
 
 	o.cache.Set(instanceID, cachePayload)
 	return cachePayload, nil
@@ -111,7 +113,7 @@ func (o *OrchestraUsecase) getOrCreateWorkflowInstance(ctx context.Context, even
 		return o.queries.CreateWorkflowInstance(ctx, sqlc.CreateWorkflowInstanceParams{
 			ID:         eventMsg.InstanceID,
 			WorkflowID: wf.ID,
-			Status:     dto.PENDING.String(),
+			Status:     dto.IN_PROGRESS.String(),
 		})
 	}
 

@@ -100,12 +100,8 @@ func (u *Usecase) RefundPaymentMessaging(ctx context.Context, ge event.GlobalEve
 		Request: ge.Payload.Request,
 	}
 
-	if err != nil || response.Error != "" {
-		if err != nil {
-			basePayload.Response = err.Error()
-		} else {
-			basePayload.Response = response.Error
-		}
+	if err != nil {
+		basePayload.Response = err
 
 		gevent = event.NewGlobalEvent[dto.PaymentRequest, any](
 			"update",

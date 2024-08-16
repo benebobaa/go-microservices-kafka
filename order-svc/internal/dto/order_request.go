@@ -24,6 +24,7 @@ type OrderRequest struct {
 type OrderUpdateRequest struct {
 	RefID     string  `json:"ref_id"`
 	Amount    float64 `json:"amount"`
+	Quantity  int32   `json:"quantity"`
 	Status    string  `json:"-"`
 	EventType string  `json:"-"`
 }

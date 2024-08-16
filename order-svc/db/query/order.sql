@@ -7,9 +7,10 @@ UPDATE orders
 SET 
     status = $1,
     total_amount = $2,
+    quantity = $3,
     updated_at = CURRENT_TIMESTAMP
 WHERE 
-    ref_id = $3
+    ref_id = $4
 RETURNING *;
 
 -- name: CountByID :one

@@ -91,20 +91,27 @@ UPDATE orders
 SET 
     status = $1,
     total_amount = $2,
+    quantity = $3,
     updated_at = CURRENT_TIMESTAMP
 WHERE 
-    ref_id = $3
+    ref_id = $4
 RETURNING id, ref_id, customer_id, username, product_id, quantity, order_date, status, total_amount, created_at, updated_at
 `
 
 type UpdateOrderParams struct {
 	Status      string          `json:"status"`
 	TotalAmount sql.NullFloat64 `json:"total_amount"`
+	Quantity    int32           `json:"quantity"`
 	RefID       string          `json:"ref_id"`
 }
 
 func (q *Queries) UpdateOrder(ctx context.Context, arg UpdateOrderParams) (Order, error) {
-	row := q.db.QueryRowContext(ctx, updateOrder, arg.Status, arg.TotalAmount, arg.RefID)
+	row := q.db.QueryRowContext(ctx, updateOrder,
+		arg.Status,
+		arg.TotalAmount,
+		arg.Quantity,
+		arg.RefID,
+	)
 	var i Order
 	err := row.Scan(
 		&i.ID,

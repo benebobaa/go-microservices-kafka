@@ -14,8 +14,8 @@ func main() {
 
 	log.Println("config: ", config)
 
-	gin := gin.Default()
+	g := gin.Default()
 	db := pkg.NewDBConn(config.DBDriver, config.DBSource)
 
-	app.NewApp(db, gin, config).Run()
+	app.NewApp(db, g, config).Run()
 }

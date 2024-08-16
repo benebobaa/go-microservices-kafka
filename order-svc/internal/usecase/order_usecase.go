@@ -132,6 +132,7 @@ func (oc *OrderUsecase) UpdateOrderMessaging(ctx context.Context, req event.Glob
 		RefID:     req.Payload.Request.RefID,
 		Amount:    req.Payload.Request.Amount,
 		Status:    req.Payload.Request.Status,
+		Quantity:  req.Payload.Request.Quantity,
 		EventType: req.EventType,
 	})
 
@@ -179,7 +180,8 @@ func (oc *OrderUsecase) UpdateOrder(ctx context.Context, req *dto.OrderUpdateReq
 			Float64: req.Amount,
 			Valid:   true,
 		},
-		RefID: req.RefID,
+		Quantity: req.Quantity,
+		RefID:    req.RefID,
 	})
 
 	if err != nil {

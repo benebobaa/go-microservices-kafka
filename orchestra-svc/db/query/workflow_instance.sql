@@ -56,3 +56,10 @@ WHERE workflow_instance_id = $1;
 -- name: FindWorkflowInstanceByID :one
 SELECT * FROM workflow_instances
 WHERE id = $1 LIMIT 1;
+
+-- name: FindWorkflowInstanceStepsByEventIDAndInsID :one
+SELECT wis.event_id, wis.workflow_instance_id, wis.status_code, wis.status, wis.event_message,
+       s.topic
+FROM workflow_instance_steps wis
+         JOIN steps s on wis.step_id = s.id
+WHERE event_id = $1 AND workflow_instance_id = $2;

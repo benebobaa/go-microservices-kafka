@@ -34,12 +34,8 @@ func (u *Usecase) ValidateUserMessaging(ctx context.Context, ge event.GlobalEven
 		Request: ge.Payload.Request,
 	}
 
-	if err != nil || response.Error != "" {
-		if err != nil {
-			basePayload.Response = err.Error()
-		} else {
-			basePayload.Response = response.Error
-		}
+	if err != nil {
+		basePayload.Response = err
 
 		gevent = event.NewGlobalEvent[dto.UserValidateRequest, any](
 			"get",
@@ -62,6 +58,7 @@ func (u *Usecase) ValidateUserMessaging(ctx context.Context, ge event.GlobalEven
 	gevent.EventID = ge.EventID
 	gevent.InstanceID = ge.InstanceID
 	gevent.EventType = ge.EventType
+
 	if response != nil {
 		gevent.StatusCode = response.StatusCode
 	} else {
@@ -98,10 +95,8 @@ func (u *Usecase) ValidateUser(ctx context.Context, request *dto.UserValidateReq
 	)
 
 	if err != nil {
-		return nil, err
+		return &response, err
 	}
-
-	log.Println("response userClient: ", response)
 
 	return &response, nil
 }

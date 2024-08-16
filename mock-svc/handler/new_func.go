@@ -52,8 +52,16 @@ func NewProductHandler() *ProductHandler {
 		Price: 2000,
 	}
 
+	product3 := Product{
+		ID:    "P-003",
+		Name:  "Product 3",
+		Stock: 3,
+		Price: 3000,
+	}
+
 	db[product1.ID] = product1
 	db[product2.ID] = product2
+	db[product3.ID] = product3
 
 	return &ProductHandler{
 		db:    db,
