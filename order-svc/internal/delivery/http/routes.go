@@ -9,4 +9,5 @@ func (ah *AuthHandler) RegisterRoutes(router *gin.RouterGroup) {
 func (oh *OrderHandler) RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/", oh.CreateOrder)
 	router.PATCH("/cancel", oh.CancelOrder)
+	router.GET("/", oh.FindAll)
 }

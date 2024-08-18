@@ -45,9 +45,10 @@ SET
     event_message = $2,
     status_code = $3,
     response = $4,
-    completed_at = $5
+    started_at = $5,
+    completed_at = $6
 WHERE
-    event_id = $6;
+    event_id = $7;
 
 -- name: FindInstanceStepByID :many
 SELECT * FROM workflow_instance_steps

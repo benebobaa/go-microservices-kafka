@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CheckIfInstanceStepExists(ctx context.Context, eventID string) (bool, error)
+	CreateProcessLog(ctx context.Context, arg CreateProcessLogParams) error
 	CreateWorkflowInstance(ctx context.Context, arg CreateWorkflowInstanceParams) (WorkflowInstance, error)
 	CreateWorkflowInstanceStep(ctx context.Context, arg CreateWorkflowInstanceStepParams) (WorkflowInstanceStep, error)
 	FindInstanceStepByEventID(ctx context.Context, eventID string) (WorkflowInstanceStep, error)

@@ -5,3 +5,7 @@ type BaseResponse[T any] struct {
 	Error      string `json:"error,omitempty"`
 	Data       *T     `json:"data,omitempty"`
 }
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}

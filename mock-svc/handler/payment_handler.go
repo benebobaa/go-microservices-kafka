@@ -1,11 +1,18 @@
 package handler
 
 import (
+	"encoding/json"
+	"os"
 	"sync"
 
 	"github.com/benebobaa/valo"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+)
+
+const (
+	transactionFile = "transactions.json"
+	balanceFile     = "balances.json"
 )
 
 type Transaction struct {
@@ -153,4 +160,88 @@ func (h *PaymentHandler) RefundTransaction(c *gin.Context) {
 	}
 
 	c.JSON(404, gin.H{"status_code": 404, "error": "transaction not found"})
+}
+
+// Add these functions to the PaymentHandler struct
+func (h *PaymentHandler) SaveData() error {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	// Save transactions
+	if err := saveToFile(transactionFile, h.dbT); err != nil {
+		return err
+	}
+
+	// Save balances
+	if err := saveToFile(balanceFile, h.dbB); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *PaymentHandler) LoadData() error {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	// Load transactions
+	if err := loadFromFile(transactionFile, &h.dbT); err != nil {
+		return err
+	}
+
+	// Load balances
+	if err := loadFromFile(balanceFile, &h.dbB); err != nil {
+		return err
+	}
+
+	balance1 := Balance{
+		AccountID: "AC-001",
+		Balance:   50000,
+	}
+
+	balance2 := Balance{
+		AccountID: "AC-002",
+		Balance:   100000,
+	}
+
+	balance3 := Balance{
+		AccountID: "AC-003",
+		Balance:   5000,
+	}
+
+	var balances []Balance = []Balance{balance1, balance2, balance3}
+
+	for _, balance := range balances {
+		_, exists := h.dbB[balance.AccountID]
+		if !exists {
+			h.dbB[balance.AccountID] = balance
+		}
+	}
+
+	return nil
+}
+
+func saveToFile(filename string, data interface{}) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	return encoder.Encode(data)
+}
+
+func loadFromFile(filename string, data interface{}) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // No file to load, start with an empty map
+		}
+		return err
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	return decoder.Decode(data)
 }

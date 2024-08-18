@@ -5,3 +5,11 @@ type BaseResponse[T any] struct {
 	Error      string `json:"error,omitempty"`
 	Data       *T     `json:"data,omitempty"`
 }
+
+type ErrorResponse struct {
+	Message string `json:"error"`
+}
+
+func (e *ErrorResponse) Error() string {
+	return e.Message
+}

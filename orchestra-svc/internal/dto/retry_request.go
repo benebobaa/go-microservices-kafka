@@ -10,3 +10,8 @@ type ProductReserveRequest struct {
 	ProductID string `json:"product_id"`
 	Quantity  int    `json:"quantity"`
 }
+
+type RetryRequest struct {
+	EventID    string `json:"event_id" valo:"notblank"`
+	InstanceID string `json:"instance_id" valo:"notblank"`
+}

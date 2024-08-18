@@ -288,9 +288,10 @@ SET
     event_message = $2,
     status_code = $3,
     response = $4,
-    completed_at = $5
+    started_at = $5,
+    completed_at = $6
 WHERE
-    event_id = $6
+    event_id = $7
 `
 
 type UpdateWorkflowInstanceStepParams struct {
@@ -298,6 +299,7 @@ type UpdateWorkflowInstanceStepParams struct {
 	EventMessage sql.NullString `json:"event_message"`
 	StatusCode   sql.NullInt32  `json:"status_code"`
 	Response     sql.NullString `json:"response"`
+	StartedAt    sql.NullTime   `json:"started_at"`
 	CompletedAt  sql.NullTime   `json:"completed_at"`
 	EventID      string         `json:"event_id"`
 }
@@ -308,6 +310,7 @@ func (q *Queries) UpdateWorkflowInstanceStep(ctx context.Context, arg UpdateWork
 		arg.EventMessage,
 		arg.StatusCode,
 		arg.Response,
+		arg.StartedAt,
 		arg.CompletedAt,
 		arg.EventID,
 	)

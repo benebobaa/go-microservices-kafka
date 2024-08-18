@@ -58,3 +58,29 @@ func (wf *WorkflowHandler) RetryProductReserve(c *gin.Context) {
 
 	c.JSON(200, response)
 }
+
+func (wf *WorkflowHandler) RetryInstanceStep(c *gin.Context) {
+
+	var req dto.RetryRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, err.Error())
+		return
+	}
+
+	err := valo.Validate(req)
+
+	if err != nil {
+		c.JSON(400, err.Error())
+		return
+	}
+
+	response, err := wf.rc.RetryFailedInstanceStep(c, &req)
+
+	if err != nil {
+		c.JSON(500, err.Error())
+		return
+	}
+
+	c.JSON(200, response)
+}

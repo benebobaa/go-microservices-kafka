@@ -20,3 +20,11 @@ WHERE ref_id = $1;
 
 -- name: FindOrderByID :one
 SELECT * FROM orders WHERE id = $1 LIMIT 1;
+
+-- name: FindOrderByRefID :one
+SELECT * FROM orders WHERE ref_id = $1 LIMIT 1;
+
+-- name: FindOrdersByUsername :many
+SELECT * FROM orders
+WHERE username = $1
+ORDER BY created_at  DESC;

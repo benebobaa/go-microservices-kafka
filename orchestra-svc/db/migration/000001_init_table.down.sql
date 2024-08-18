@@ -1,3 +1,5 @@
+-- Process Log
+DROP TABLE IF EXISTS process_logs;
 
 -- Workflow Instance Steps
 DROP TABLE IF EXISTS workflow_instance_steps;

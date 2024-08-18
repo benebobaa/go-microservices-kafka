@@ -30,9 +30,13 @@ func NewOrchestraUsecase(q sqlc.Querier, p *producer.KafkaProducer, c *cache.Pay
 	}
 }
 
-func (o *OrchestraUsecase) EditRetry(ctx context.Context) {}
-
 func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.GlobalEvent[any, any]) error {
+
+	err := o.logDB(ctx, eventMsg)
+
+	if err != nil {
+		log.Println("Error logging to db: ", err)
+	}
 
 	cachePayload, err := o.getCachePayload(eventMsg.InstanceID, eventMsg.Source, eventMsg.Payload.Response)
 	if err != nil {
@@ -98,11 +102,15 @@ func (o *OrchestraUsecase) handleInstanceStep(ctx context.Context, eventMsg even
 		return fmt.Errorf("parse response: %w", err)
 	}
 
+	log.Println("step id: ", instanceStep.StepID)
+	log.Println("process time: ", time.Since(instanceStep.StartedAt.Time))
+
 	return o.queries.UpdateWorkflowInstanceStep(ctx, sqlc.UpdateWorkflowInstanceStepParams{
 		Status:       eventMsg.Status,
 		StatusCode:   sql.NullInt32{Int32: int32(eventMsg.StatusCode), Valid: true},
 		Response:     sql.NullString{String: string(responseMsg), Valid: true},
 		EventMessage: sql.NullString{String: string(eventMsgBytes), Valid: true},
+		StartedAt:    instanceStep.StartedAt,
 		CompletedAt:  sql.NullTime{Time: time.Now(), Valid: true},
 		EventID:      eventMsg.EventID,
 	})
@@ -257,4 +265,24 @@ func (o *OrchestraUsecase) createWorkflowInstanceStep(ctx context.Context, geven
 		StartedAt:          sql.NullTime{Time: time.Now(), Valid: true},
 	})
 	return err
+}
+
+func (o *OrchestraUsecase) logDB(ctx context.Context, globalEvent event.GlobalEvent[any, any]) error {
+	bytes, err := json.Marshal(globalEvent)
+
+	if err != nil {
+		return fmt.Errorf("parse message: %w", err)
+	}
+
+	return o.queries.CreateProcessLog(ctx, sqlc.CreateProcessLogParams{
+		EventID:            globalEvent.EventID,
+		WorkflowInstanceID: globalEvent.InstanceID,
+		State:              globalEvent.State,
+		StatusCode: sql.NullInt32{
+			Int32: int32(globalEvent.StatusCode),
+			Valid: true,
+		},
+		Status:       globalEvent.Status,
+		EventMessage: string(bytes),
+	})
 }

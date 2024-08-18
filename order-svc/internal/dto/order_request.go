@@ -30,7 +30,7 @@ type OrderUpdateRequest struct {
 }
 
 type OrderCancelRequest struct {
-	OrderID  int32  `json:"order_id" valo:"min=1"`
+	OrderID  int    `json:"order_id" valo:"min=1"`
 	Username string `json:"-"`
 }
 
