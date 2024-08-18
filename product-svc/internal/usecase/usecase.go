@@ -8,7 +8,9 @@ import (
 	"product-svc/internal/dto/event"
 	"product-svc/pkg/http_client"
 	"product-svc/pkg/producer"
+	"time"
 
+	"github.com/benebobaa/retry-it"
 	"github.com/google/uuid"
 )
 
@@ -36,9 +38,9 @@ func (u *Usecase) ReserveProductMessaging(ctx context.Context, ge event.GlobalEv
 	}
 	if err != nil || response.Error != "" {
 		if err != nil {
-			basePayload.Response = err.Error()
+			basePayload.Response = err
 		} else {
-			basePayload.Response = response.Error
+			basePayload.Response = response
 		}
 
 		gevent = event.NewGlobalEvent[dto.ProductRequest, any](
@@ -98,12 +100,9 @@ func (u *Usecase) ReleaseProductMessaging(ctx context.Context, ge event.GlobalEv
 	basePayload := event.BasePayload[dto.ProductRequest, any]{
 		Request: ge.Payload.Request,
 	}
-	if err != nil || response.Error != "" {
-		if err != nil {
-			basePayload.Response = err.Error()
-		} else {
-			basePayload.Response = response.Error
-		}
+
+	if err != nil {
+		basePayload.Response = err
 
 		gevent = event.NewGlobalEvent[dto.ProductRequest, any](
 			"update",
@@ -111,6 +110,12 @@ func (u *Usecase) ReleaseProductMessaging(ctx context.Context, ge event.GlobalEv
 			"product_release_failed",
 			basePayload,
 		)
+
+		if response.Error != "" {
+			gevent.StatusCode = response.StatusCode
+		} else {
+			gevent.StatusCode = 500
+		}
 	} else {
 		basePayload.Response = response.Data
 
@@ -120,6 +125,8 @@ func (u *Usecase) ReleaseProductMessaging(ctx context.Context, ge event.GlobalEv
 			"product_release_success",
 			basePayload,
 		)
+
+		gevent.StatusCode = response.StatusCode
 	}
 
 	log.Println("check state:", gevent.State)
@@ -127,11 +134,6 @@ func (u *Usecase) ReleaseProductMessaging(ctx context.Context, ge event.GlobalEv
 	gevent.EventID = ge.EventID
 	gevent.InstanceID = ge.InstanceID
 	gevent.EventType = ge.EventType
-	if response != nil {
-		gevent.StatusCode = response.StatusCode
-	} else {
-		gevent.StatusCode = 500
-	}
 
 	log.Println("gevent:", gevent)
 
@@ -146,31 +148,49 @@ func (u *Usecase) ReleaseProductMessaging(ctx context.Context, ge event.GlobalEv
 	}
 
 	if err != nil {
-		return fmt.Errorf("product release failed: %w", err)
+		return fmt.Errorf("product release failed: %s", err)
 	}
 
 	return nil
 }
 
-func (u *Usecase) ReserveProduct(ctx context.Context, req *dto.ProductRequest) (*dto.BaseResponse[dto.ProductResponse], error) {
+func (u *Usecase) ReserveProduct(ctx context.Context, req *dto.ProductRequest) (*dto.BaseResponse[dto.ProductResponse], *dto.ErrorResponse) {
 	var response dto.BaseResponse[dto.ProductResponse]
 
-	err := u.userClient.POST("/reserve", req, &response)
+	counter := 0
+	err := retryit.Do(ctx, func(ctx context.Context) error {
+		counter++
+		log.Println("retrying reserve: ", counter)
+		return u.userClient.POST(ctx, "/reserve", req, &response)
+	}, retryit.WithInitialDelay(500*time.Millisecond))
 
 	if err != nil {
-		return nil, err
+		return &response, &dto.ErrorResponse{Error: err.Error()}
+	}
+
+	if response.StatusCode != 200 {
+		return &response, &dto.ErrorResponse{Error: response.Error}
 	}
 
 	return &response, nil
 }
 
-func (u *Usecase) ReleaseProduct(ctx context.Context, req *dto.ProductRequest) (*dto.BaseResponse[dto.ProductResponse], error) {
+func (u *Usecase) ReleaseProduct(ctx context.Context, req *dto.ProductRequest) (*dto.BaseResponse[dto.ProductResponse], *dto.ErrorResponse) {
 	var response dto.BaseResponse[dto.ProductResponse]
 
-	err := u.userClient.POST("/release", req, &response)
+	counter := 0
+	err := retryit.Do(ctx, func(ctx context.Context) error {
+		counter++
+		log.Println("retrying release: ", counter)
+		return u.userClient.POST(ctx, "/release", req, &response)
+	}, retryit.WithInitialDelay(500*time.Millisecond))
 
 	if err != nil {
-		return nil, err
+		return &response, &dto.ErrorResponse{Error: err.Error()}
+	}
+
+	if response.StatusCode != 200 {
+		return &response, &dto.ErrorResponse{Error: response.Error}
 	}
 
 	return &response, nil

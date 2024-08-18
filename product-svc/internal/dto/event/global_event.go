@@ -12,10 +12,11 @@ const (
 	USER_VALIDATION_SUCCESS State = iota
 	PAYMENT_FAILED
 	ORDER_CANCEL
+	PRODUCT_RETRY
 )
 
 func (s State) String() string {
-	return [...]string{"user_validation_success", "payment_failed", "order_cancel"}[s]
+	return [...]string{"user_validation_success", "payment_failed", "order_cancel", "product_retry"}[s]
 }
 
 type BasePayload[R any, S any] struct {

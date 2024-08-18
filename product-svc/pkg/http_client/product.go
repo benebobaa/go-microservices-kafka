@@ -2,11 +2,10 @@ package http_client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 )
@@ -25,44 +24,53 @@ func NewProductClient(url string, timeout time.Duration) *ProductClient {
 	}
 }
 
-func (r *ProductClient) call(suffix, method string, request any, response any) error {
+func (r *ProductClient) call(ctx context.Context, suffix, method string, request any, response any) error {
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
-		return errors.New("error marshalling HTTP request")
+		return fmt.Errorf("error marshalling request: %v", err)
 	}
-	log.Println("URL: ", fmt.Sprintf("%s%s", r.url, suffix))
 
 	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", r.url, suffix), bytes.NewReader(jsonData))
 	if err != nil {
-		return errors.New("error creating HTTP request")
+		return fmt.Errorf("error creating HTTP request: %v", err)
 	}
 
 	res, err := r.client.Do(req)
 	if err != nil {
-		return errors.New("error executing HTTP request")
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("request cancelled: %v", ctx.Err())
+		default:
+			return fmt.Errorf("error sending HTTP request: %v", err)
+		}
 	}
-
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return errors.New("error reading HTTP response")
+		return fmt.Errorf("error reading response body: %v", err)
 	}
 
 	err = json.Unmarshal(body, response)
 
 	if err != nil {
-		return errors.New("error unmarshalling HTTP response body")
+		return fmt.Errorf("error unmarshalling response: %v", err)
+	}
+
+	if res.StatusCode == 429 {
+		return fmt.Errorf("too many requests: %d", res.StatusCode)
+	} else if res.StatusCode >= 500 {
+		return fmt.Errorf("server error: %d", res.StatusCode)
 	}
 
 	return nil
 }
 
-func (r *ProductClient) GET(suffix string, request any, response any) error {
-	return r.call(suffix, http.MethodGet, request, response)
+func (r *ProductClient) GET(ctx context.Context, suffix string, request any, response any) error {
+	return r.call(ctx, suffix, http.MethodGet, request, response)
 }
 
-func (r *ProductClient) POST(suffix string, request any, response any) error {
-	return r.call(suffix, http.MethodPost, request, response)
+func (r *ProductClient) POST(ctx context.Context, suffix string, request any, response any) error {
+	return r.call(ctx, suffix, http.MethodPost, request, response)
 }

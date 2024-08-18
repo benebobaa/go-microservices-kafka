@@ -1,6 +1,9 @@
 package handler
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 func NewUserHandler() *UserHandler {
 	db := make(map[string]User)
@@ -52,8 +55,16 @@ func NewProductHandler() *ProductHandler {
 		Price: 2000,
 	}
 
+	product3 := Product{
+		ID:    "P-003",
+		Name:  "Product 3",
+		Stock: 3,
+		Price: 3000,
+	}
+
 	db[product1.ID] = product1
 	db[product2.ID] = product2
+	db[product3.ID] = product3
 
 	return &ProductHandler{
 		db:    db,
@@ -66,27 +77,16 @@ func NewPaymentHandler() *PaymentHandler {
 	dbt := make(map[string]Transaction)
 	dbb := make(map[string]Balance)
 
-	balance1 := Balance{
-		AccountID: "AC-001",
-		Balance:   50000,
-	}
-
-	balance2 := Balance{
-		AccountID: "AC-002",
-		Balance:   100000,
-	}
-
-	balance3 := Balance{
-		AccountID: "AC-003",
-		Balance:   5000,
-	}
-	dbb[balance1.AccountID] = balance1
-	dbb[balance2.AccountID] = balance2
-	dbb[balance3.AccountID] = balance3
-
-	return &PaymentHandler{
+	h := &PaymentHandler{
 		dbT:   dbt,
 		dbB:   dbb,
 		mutex: &sync.RWMutex{},
 	}
+
+	if err := h.LoadData(); err != nil {
+		// Handle error, possibly log it or return nil and handle it in the main function
+		fmt.Println("Error loading data:", err)
+	}
+
+	return h
 }

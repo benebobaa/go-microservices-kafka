@@ -16,6 +16,17 @@ type PayloadKey struct {
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
+type ProcessLog struct {
+	ID                 int32         `json:"id"`
+	EventID            string        `json:"event_id"`
+	WorkflowInstanceID string        `json:"workflow_instance_id"`
+	State              string        `json:"state"`
+	StatusCode         sql.NullInt32 `json:"status_code"`
+	Status             string        `json:"status"`
+	EventMessage       string        `json:"event_message"`
+	CreatedAt          sql.NullTime  `json:"created_at"`
+}
+
 type StateAction struct {
 	ID        int32        `json:"id"`
 	Type      string       `json:"type"`
@@ -54,6 +65,8 @@ type WorkflowInstance struct {
 type WorkflowInstanceStep struct {
 	ID                 int32          `json:"id"`
 	EventID            string         `json:"event_id"`
+	StatusCode         sql.NullInt32  `json:"status_code"`
+	Response           sql.NullString `json:"response"`
 	WorkflowInstanceID string         `json:"workflow_instance_id"`
 	StepID             int32          `json:"step_id"`
 	Status             string         `json:"status"`

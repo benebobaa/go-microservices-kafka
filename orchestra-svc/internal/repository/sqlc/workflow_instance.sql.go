@@ -49,7 +49,7 @@ func (q *Queries) CreateWorkflowInstance(ctx context.Context, arg CreateWorkflow
 const createWorkflowInstanceStep = `-- name: CreateWorkflowInstanceStep :one
 INSERT INTO workflow_instance_steps (workflow_instance_id,event_id, step_id, status, event_message, started_at, completed_at)
 VALUES
-    ($1, $2, $3, $4, $5, $6, $7) RETURNING id, event_id, workflow_instance_id, step_id, status, event_message, started_at, completed_at
+    ($1, $2, $3, $4, $5, $6, $7) RETURNING id, event_id, status_code, response, workflow_instance_id, step_id, status, event_message, started_at, completed_at
 `
 
 type CreateWorkflowInstanceStepParams struct {
@@ -76,6 +76,31 @@ func (q *Queries) CreateWorkflowInstanceStep(ctx context.Context, arg CreateWork
 	err := row.Scan(
 		&i.ID,
 		&i.EventID,
+		&i.StatusCode,
+		&i.Response,
+		&i.WorkflowInstanceID,
+		&i.StepID,
+		&i.Status,
+		&i.EventMessage,
+		&i.StartedAt,
+		&i.CompletedAt,
+	)
+	return i, err
+}
+
+const findInstanceStepByEventID = `-- name: FindInstanceStepByEventID :one
+SELECT id, event_id, status_code, response, workflow_instance_id, step_id, status, event_message, started_at, completed_at FROM workflow_instance_steps
+WHERE event_id = $1 LIMIT 1
+`
+
+func (q *Queries) FindInstanceStepByEventID(ctx context.Context, eventID string) (WorkflowInstanceStep, error) {
+	row := q.db.QueryRowContext(ctx, findInstanceStepByEventID, eventID)
+	var i WorkflowInstanceStep
+	err := row.Scan(
+		&i.ID,
+		&i.EventID,
+		&i.StatusCode,
+		&i.Response,
 		&i.WorkflowInstanceID,
 		&i.StepID,
 		&i.Status,
@@ -87,7 +112,7 @@ func (q *Queries) CreateWorkflowInstanceStep(ctx context.Context, arg CreateWork
 }
 
 const findInstanceStepByID = `-- name: FindInstanceStepByID :many
-SELECT id, event_id, workflow_instance_id, step_id, status, event_message, started_at, completed_at FROM workflow_instance_steps
+SELECT id, event_id, status_code, response, workflow_instance_id, step_id, status, event_message, started_at, completed_at FROM workflow_instance_steps
 WHERE workflow_instance_id = $1
 `
 
@@ -103,6 +128,8 @@ func (q *Queries) FindInstanceStepByID(ctx context.Context, workflowInstanceID s
 		if err := rows.Scan(
 			&i.ID,
 			&i.EventID,
+			&i.StatusCode,
+			&i.Response,
 			&i.WorkflowInstanceID,
 			&i.StepID,
 			&i.Status,
@@ -199,6 +226,42 @@ func (q *Queries) FindWorkflowInstanceByTypeAndID(ctx context.Context, arg FindW
 	return items, nil
 }
 
+const findWorkflowInstanceStepsByEventIDAndInsID = `-- name: FindWorkflowInstanceStepsByEventIDAndInsID :one
+SELECT wis.event_id, wis.workflow_instance_id, wis.status_code, wis.status, wis.event_message,
+       s.topic
+FROM workflow_instance_steps wis
+         JOIN steps s on wis.step_id = s.id
+WHERE event_id = $1 AND workflow_instance_id = $2
+`
+
+type FindWorkflowInstanceStepsByEventIDAndInsIDParams struct {
+	EventID            string `json:"event_id"`
+	WorkflowInstanceID string `json:"workflow_instance_id"`
+}
+
+type FindWorkflowInstanceStepsByEventIDAndInsIDRow struct {
+	EventID            string         `json:"event_id"`
+	WorkflowInstanceID string         `json:"workflow_instance_id"`
+	StatusCode         sql.NullInt32  `json:"status_code"`
+	Status             string         `json:"status"`
+	EventMessage       sql.NullString `json:"event_message"`
+	Topic              string         `json:"topic"`
+}
+
+func (q *Queries) FindWorkflowInstanceStepsByEventIDAndInsID(ctx context.Context, arg FindWorkflowInstanceStepsByEventIDAndInsIDParams) (FindWorkflowInstanceStepsByEventIDAndInsIDRow, error) {
+	row := q.db.QueryRowContext(ctx, findWorkflowInstanceStepsByEventIDAndInsID, arg.EventID, arg.WorkflowInstanceID)
+	var i FindWorkflowInstanceStepsByEventIDAndInsIDRow
+	err := row.Scan(
+		&i.EventID,
+		&i.WorkflowInstanceID,
+		&i.StatusCode,
+		&i.Status,
+		&i.EventMessage,
+		&i.Topic,
+	)
+	return i, err
+}
+
 const updateWorkflowInstance = `-- name: UpdateWorkflowInstance :exec
 UPDATE workflow_instances
 SET
@@ -223,14 +286,20 @@ UPDATE workflow_instance_steps
 SET
     status = $1,
     event_message = $2,
-    completed_at = $3
+    status_code = $3,
+    response = $4,
+    started_at = $5,
+    completed_at = $6
 WHERE
-    event_id = $4
+    event_id = $7
 `
 
 type UpdateWorkflowInstanceStepParams struct {
 	Status       string         `json:"status"`
 	EventMessage sql.NullString `json:"event_message"`
+	StatusCode   sql.NullInt32  `json:"status_code"`
+	Response     sql.NullString `json:"response"`
+	StartedAt    sql.NullTime   `json:"started_at"`
 	CompletedAt  sql.NullTime   `json:"completed_at"`
 	EventID      string         `json:"event_id"`
 }
@@ -239,6 +308,9 @@ func (q *Queries) UpdateWorkflowInstanceStep(ctx context.Context, arg UpdateWork
 	_, err := q.db.ExecContext(ctx, updateWorkflowInstanceStep,
 		arg.Status,
 		arg.EventMessage,
+		arg.StatusCode,
+		arg.Response,
+		arg.StartedAt,
 		arg.CompletedAt,
 		arg.EventID,
 	)

@@ -86,25 +86,96 @@ func (q *Queries) FindOrderByID(ctx context.Context, id int32) (Order, error) {
 	return i, err
 }
 
+const findOrderByRefID = `-- name: FindOrderByRefID :one
+SELECT id, ref_id, customer_id, username, product_id, quantity, order_date, status, total_amount, created_at, updated_at FROM orders WHERE ref_id = $1 LIMIT 1
+`
+
+func (q *Queries) FindOrderByRefID(ctx context.Context, refID string) (Order, error) {
+	row := q.db.QueryRowContext(ctx, findOrderByRefID, refID)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.RefID,
+		&i.CustomerID,
+		&i.Username,
+		&i.ProductID,
+		&i.Quantity,
+		&i.OrderDate,
+		&i.Status,
+		&i.TotalAmount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findOrdersByUsername = `-- name: FindOrdersByUsername :many
+SELECT id, ref_id, customer_id, username, product_id, quantity, order_date, status, total_amount, created_at, updated_at FROM orders
+WHERE username = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) FindOrdersByUsername(ctx context.Context, username string) ([]Order, error) {
+	rows, err := q.db.QueryContext(ctx, findOrdersByUsername, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Order{}
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.RefID,
+			&i.CustomerID,
+			&i.Username,
+			&i.ProductID,
+			&i.Quantity,
+			&i.OrderDate,
+			&i.Status,
+			&i.TotalAmount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateOrder = `-- name: UpdateOrder :one
 UPDATE orders
 SET 
     status = $1,
     total_amount = $2,
+    quantity = $3,
     updated_at = CURRENT_TIMESTAMP
 WHERE 
-    ref_id = $3
+    ref_id = $4
 RETURNING id, ref_id, customer_id, username, product_id, quantity, order_date, status, total_amount, created_at, updated_at
 `
 
 type UpdateOrderParams struct {
 	Status      string          `json:"status"`
 	TotalAmount sql.NullFloat64 `json:"total_amount"`
+	Quantity    int32           `json:"quantity"`
 	RefID       string          `json:"ref_id"`
 }
 
 func (q *Queries) UpdateOrder(ctx context.Context, arg UpdateOrderParams) (Order, error) {
-	row := q.db.QueryRowContext(ctx, updateOrder, arg.Status, arg.TotalAmount, arg.RefID)
+	row := q.db.QueryRowContext(ctx, updateOrder,
+		arg.Status,
+		arg.TotalAmount,
+		arg.Quantity,
+		arg.RefID,
+	)
 	var i Order
 	err := row.Scan(
 		&i.ID,

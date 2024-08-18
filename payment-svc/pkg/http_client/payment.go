@@ -10,13 +10,21 @@ import (
 	"time"
 )
 
-type UserClient struct {
+type ErrorResponse struct {
+	Message string `json:"error"`
+}
+
+func (e *ErrorResponse) Error() string {
+	return e.Message
+}
+
+type PaymentClient struct {
 	url    string
 	client *http.Client
 }
 
-func NewUserClient(url string, timeout time.Duration) *UserClient {
-	return &UserClient{
+func NewPaymentClient(url string, timeout time.Duration) *PaymentClient {
+	return &PaymentClient{
 		url: url,
 		client: &http.Client{
 			Timeout: timeout,
@@ -24,7 +32,7 @@ func NewUserClient(url string, timeout time.Duration) *UserClient {
 	}
 }
 
-func (r *UserClient) call(ctx context.Context, suffix, method string, request any, response any) error {
+func (r *PaymentClient) call(ctx context.Context, suffix, method string, request any, response any) error {
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
@@ -67,10 +75,14 @@ func (r *UserClient) call(ctx context.Context, suffix, method string, request an
 	return nil
 }
 
-func (r *UserClient) GET(ctx context.Context, suffix string, request any, response any) error {
+func (r *PaymentClient) GET(ctx context.Context, suffix string, request any, response any) error {
 	return r.call(ctx, suffix, http.MethodGet, request, response)
 }
 
-func (r *UserClient) POST(ctx context.Context, suffix string, request any, response any) error {
+func (r *PaymentClient) POST(ctx context.Context, suffix string, request any, response any) error {
 	return r.call(ctx, suffix, http.MethodPost, request, response)
+}
+
+func (r *PaymentClient) PATCH(ctx context.Context, suffix string, request any, response any) error {
+	return r.call(ctx, suffix, http.MethodPatch, request, response)
 }

@@ -7,11 +7,11 @@ const (
 	PROCESSING
 	CANCEL_PROCESSING
 	COMPLETE
-	FAILED
+	CANCELLED
 )
 
 func (s Status) String() string {
-	return [...]string{"PENDING", "PROCESSING", "CANCEL_PROCESSING", "COMPLETE", "FAILED"}[s]
+	return [...]string{"PENDING", "PROCESSING", "CANCEL_PROCESSING", "COMPLETE", "CANCELLED"}[s]
 }
 
 type OrderRequest struct {
@@ -24,12 +24,13 @@ type OrderRequest struct {
 type OrderUpdateRequest struct {
 	RefID     string  `json:"ref_id"`
 	Amount    float64 `json:"amount"`
+	Quantity  int32   `json:"quantity"`
 	Status    string  `json:"-"`
 	EventType string  `json:"-"`
 }
 
 type OrderCancelRequest struct {
-	OrderID  int32  `json:"order_id" valo:"min=1"`
+	OrderID  int    `json:"order_id" valo:"min=1"`
 	Username string `json:"-"`
 }
 

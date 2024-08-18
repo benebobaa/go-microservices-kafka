@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
@@ -30,6 +31,13 @@ func NewOrchestraUsecase(q sqlc.Querier, p *producer.KafkaProducer, c *cache.Pay
 }
 
 func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.GlobalEvent[any, any]) error {
+
+	err := o.logDB(ctx, eventMsg)
+
+	if err != nil {
+		log.Println("Error logging to db: ", err)
+	}
+
 	cachePayload, err := o.getCachePayload(eventMsg.InstanceID, eventMsg.Source, eventMsg.Payload.Response)
 	if err != nil {
 		return err
@@ -61,22 +69,26 @@ func (o *OrchestraUsecase) getCachePayload(instanceID string, source string, res
 		cachePayload = make(map[string]any)
 	}
 
-	if _, exists := cachePayload[source]; !exists {
-		cachePayload[source] = response
-	}
+	//if _, exists := cachePayload[source]; !exists {
+	cachePayload[source] = response
+	//}
 
 	o.cache.Set(instanceID, cachePayload)
 	return cachePayload, nil
 }
 
 func (o *OrchestraUsecase) handleInstanceStep(ctx context.Context, eventMsg event.GlobalEvent[any, any]) error {
-	insStepExists, err := o.queries.CheckIfInstanceStepExists(ctx, eventMsg.EventID)
+	instanceStep, err := o.queries.FindInstanceStepByEventID(ctx, eventMsg.EventID)
 	if err != nil {
-		return fmt.Errorf("check instance step exists: %w", err)
+		log.Println("Error find instance step by event id: ", err)
+		//return fmt.Errorf("check instance step exists: %w", err)
 	}
 
-	if !insStepExists {
-		log.Println("Instance step does not exist")
+	// TODO: should retry when the status is 500
+	// send message again based on instance step status
+	// max retry 3 times, if still failed, mark the instance step as failed
+	if eventMsg.StatusCode >= 500 {
+		log.Println("err server 500: ", instanceStep.StepID)
 	}
 
 	eventMsgBytes, err := eventMsg.ToJSON()
@@ -84,9 +96,21 @@ func (o *OrchestraUsecase) handleInstanceStep(ctx context.Context, eventMsg even
 		return fmt.Errorf("parse message: %w", err)
 	}
 
+	responseMsg, err := json.Marshal(eventMsg.Payload.Response)
+
+	if err != nil {
+		return fmt.Errorf("parse response: %w", err)
+	}
+
+	log.Println("step id: ", instanceStep.StepID)
+	log.Println("process time: ", time.Since(instanceStep.StartedAt.Time))
+
 	return o.queries.UpdateWorkflowInstanceStep(ctx, sqlc.UpdateWorkflowInstanceStepParams{
 		Status:       eventMsg.Status,
+		StatusCode:   sql.NullInt32{Int32: int32(eventMsg.StatusCode), Valid: true},
+		Response:     sql.NullString{String: string(responseMsg), Valid: true},
 		EventMessage: sql.NullString{String: string(eventMsgBytes), Valid: true},
+		StartedAt:    instanceStep.StartedAt,
 		CompletedAt:  sql.NullTime{Time: time.Now(), Valid: true},
 		EventID:      eventMsg.EventID,
 	})
@@ -97,7 +121,7 @@ func (o *OrchestraUsecase) getOrCreateWorkflowInstance(ctx context.Context, even
 		return o.queries.CreateWorkflowInstance(ctx, sqlc.CreateWorkflowInstanceParams{
 			ID:         eventMsg.InstanceID,
 			WorkflowID: wf.ID,
-			Status:     dto.PENDING.String(),
+			Status:     dto.IN_PROGRESS.String(),
 		})
 	}
 
@@ -178,6 +202,7 @@ func (o *OrchestraUsecase) processDone(ctx context.Context, eventType, instanceI
 
 func (o *OrchestraUsecase) processStep(ctx context.Context, eventMsg event.GlobalEvent[any, any], instance sqlc.WorkflowInstance, step sqlc.FindStepsByTypeAndStateRow, cachePayload map[string]any) error {
 	keys, err := o.queries.FindPayloadKeysByStepID(ctx, step.StepID)
+
 	if err != nil {
 		return fmt.Errorf("find payload keys: %w", err)
 	}
@@ -240,4 +265,24 @@ func (o *OrchestraUsecase) createWorkflowInstanceStep(ctx context.Context, geven
 		StartedAt:          sql.NullTime{Time: time.Now(), Valid: true},
 	})
 	return err
+}
+
+func (o *OrchestraUsecase) logDB(ctx context.Context, globalEvent event.GlobalEvent[any, any]) error {
+	bytes, err := json.Marshal(globalEvent)
+
+	if err != nil {
+		return fmt.Errorf("parse message: %w", err)
+	}
+
+	return o.queries.CreateProcessLog(ctx, sqlc.CreateProcessLogParams{
+		EventID:            globalEvent.EventID,
+		WorkflowInstanceID: globalEvent.InstanceID,
+		State:              globalEvent.State,
+		StatusCode: sql.NullInt32{
+			Int32: int32(globalEvent.StatusCode),
+			Valid: true,
+		},
+		Status:       globalEvent.Status,
+		EventMessage: string(bytes),
+	})
 }

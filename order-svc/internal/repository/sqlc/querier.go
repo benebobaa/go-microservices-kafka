@@ -12,6 +12,8 @@ type Querier interface {
 	CountByID(ctx context.Context, refID string) (int64, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	FindOrderByID(ctx context.Context, id int32) (Order, error)
+	FindOrderByRefID(ctx context.Context, refID string) (Order, error)
+	FindOrdersByUsername(ctx context.Context, username string) ([]Order, error)
 	UpdateOrder(ctx context.Context, arg UpdateOrderParams) (Order, error)
 }
 

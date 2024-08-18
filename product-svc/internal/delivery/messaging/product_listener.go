@@ -29,7 +29,7 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 		}
 
 		switch eventMsg.State {
-		case event.USER_VALIDATION_SUCCESS.String():
+		case event.USER_VALIDATION_SUCCESS.String(), event.PRODUCT_RETRY.String():
 			err = h.u.ReserveProductMessaging(sess.Context(), eventMsg)
 			if err != nil {
 				log.Println("Error processing message: ", err)

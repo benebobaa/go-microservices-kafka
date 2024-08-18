@@ -15,11 +15,11 @@ func (app *App) startService(userProductProducer *producer.KafkaProducer) error 
 	c := cache.NewPayloadCache()
 	// oc := usecase.NewOrderUsecase(producer)
 	orc := usecase.NewOrchestraUsecase(s, userProductProducer, c)
+	rc := usecase.NewRetryUsecase(s, userProductProducer, orc)
 
 	app.msg = messaging.NewMessageHandler(orc)
 
-	wfu := usecase.NewWorkflowUsecase(s)
-	wfh := http.NewWorkflowHandler(wfu)
+	wfh := http.NewWorkflowHandler(orc, rc)
 
 	wfGroupV1 := app.gin.Group("/api/v1/workflow")
 	wfh.RegisterRoutes(wfGroupV1)

@@ -73,7 +73,7 @@ func (oc *OrderUsecase) CreateOrder(ctx context.Context, req *dto.OrderRequest) 
 }
 
 func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelRequest) (*sqlc.Order, error) {
-	order, err := oc.queries.FindOrderByID(ctx, req.OrderID)
+	order, err := oc.queries.FindOrderByID(ctx, int32(req.OrderID))
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +89,7 @@ func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelReq
 	reqUpdate := &dto.OrderUpdateRequest{
 		RefID:     order.RefID,
 		Amount:    order.TotalAmount.Float64,
+		Quantity:  order.Quantity,
 		Status:    dto.CANCEL_PROCESSING.String(),
 		EventType: event.ORDER_CANCEL_PROCESS.String(),
 	}
@@ -128,12 +129,34 @@ func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelReq
 
 func (oc *OrderUsecase) UpdateOrderMessaging(ctx context.Context, req event.GlobalEvent[dto.OrderUpdateRequest, any]) error {
 
-	updatedOrder, err := oc.UpdateOrder(ctx, &dto.OrderUpdateRequest{
-		RefID:     req.Payload.Request.RefID,
-		Amount:    req.Payload.Request.Amount,
-		Status:    req.Payload.Request.Status,
-		EventType: req.EventType,
-	})
+	order, err := oc.queries.FindOrderByRefID(ctx, req.Payload.Request.RefID)
+
+	if err != nil {
+		log.Println("error find order by refID: ", err)
+		return err
+	}
+
+	var updateReq dto.OrderUpdateRequest
+
+	if req.EventType == event.ORDER_PROCESS.String() {
+		updateReq = dto.OrderUpdateRequest{
+			RefID:     order.RefID,
+			Amount:    req.Payload.Request.Amount,
+			Status:    req.Payload.Request.Status,
+			Quantity:  req.Payload.Request.Quantity,
+			EventType: req.EventType,
+		}
+	} else {
+		updateReq = dto.OrderUpdateRequest{
+			RefID:     order.RefID,
+			Amount:    order.TotalAmount.Float64,
+			Status:    req.Payload.Request.Status,
+			Quantity:  order.Quantity,
+			EventType: req.EventType,
+		}
+	}
+
+	updatedOrder, err := oc.UpdateOrder(ctx, &updateReq)
 
 	if err != nil {
 		return err
@@ -179,7 +202,8 @@ func (oc *OrderUsecase) UpdateOrder(ctx context.Context, req *dto.OrderUpdateReq
 			Float64: req.Amount,
 			Valid:   true,
 		},
-		RefID: req.RefID,
+		Quantity: req.Quantity,
+		RefID:    req.RefID,
 	})
 
 	if err != nil {
@@ -187,4 +211,14 @@ func (oc *OrderUsecase) UpdateOrder(ctx context.Context, req *dto.OrderUpdateReq
 	}
 
 	return &updatedOrder, nil
+}
+
+func (oc *OrderUsecase) FindAllOrder(ctx context.Context, username string) ([]sqlc.Order, error) {
+	orders, err := oc.queries.FindOrdersByUsername(ctx, username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return orders, nil
 }
