@@ -30,20 +30,48 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 			log.Println("failed parse event: ", err.Error())
 		}
 
-		switch eventMsg.State {
-		case event.PAYMENT_SUCCESS.String():
-			eventMsg.Payload.Request.Status = dto.COMPLETE.String()
-			err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
-			if err != nil {
-				log.Println("failed update order: ", err.Error())
+		switch eventMsg.EventType {
+		case event.ORDER_PROCESS.String():
+			if eventMsg.State == event.PAYMENT_SUCCESS.String() {
+				eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+				err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
 			}
 
-		case event.PRODUCT_RESERVATION_FAILED.String(), event.PRODUCT_RELEASE_SUCCESS.String(), event.USER_VALIDATION_FAILED.String(), event.REFUND_SUCCESS.String():
-			eventMsg.Payload.Request.Status = dto.CANCELLED.String()
-			err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
-			if err != nil {
-				log.Println("failed update order: ", err.Error())
+			if eventMsg.State == event.USER_VALIDATION_FAILED.String() {
+				eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+				err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
 			}
+
+			if eventMsg.State == event.PRODUCT_RESERVATION_FAILED.String() {
+				eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+				err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+			}
+
+			if eventMsg.State == event.PRODUCT_RELEASE_SUCCESS.String() {
+				eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+				err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+			}
+
+		case event.ORDER_CANCEL_PROCESS.String():
+
+			if eventMsg.State == event.USER_VALIDATION_FAILED.String() {
+				eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+				err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+			}
+
+			if eventMsg.State == event.REFUND_FAILED.String() {
+				eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+				err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+			}
+
+			if eventMsg.State == event.REFUND_SUCCESS.String() {
+				eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+				err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+			}
+		}
+
+		if err != nil {
+			log.Println("failed process event: ", err.Error())
 		}
 
 		sess.MarkMessage(msg, "")

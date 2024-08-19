@@ -34,7 +34,8 @@ func NewUserHandler() *UserHandler {
 	db[user3.ID] = user3
 
 	return &UserHandler{
-		db: db,
+		db:    db,
+		mutex: &sync.RWMutex{},
 	}
 }
 

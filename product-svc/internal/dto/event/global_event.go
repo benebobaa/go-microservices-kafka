@@ -10,13 +10,26 @@ type State int
 
 const (
 	USER_VALIDATION_SUCCESS State = iota
+	PRODUCT_RELEASE_SUCCESS
 	PAYMENT_FAILED
 	ORDER_CANCEL
 	PRODUCT_RETRY
+	REFUND_FAILED
 )
 
 func (s State) String() string {
-	return [...]string{"user_validation_success", "payment_failed", "order_cancel", "product_retry"}[s]
+	return [...]string{"user_validation_success", "product_release_success", "payment_failed", "order_cancel", "product_retry", "refund_failed"}[s]
+}
+
+type EventType int
+
+const (
+	ORDER_PROCESS EventType = iota
+	ORDER_CANCEL_PROCESS
+)
+
+func (e EventType) String() string {
+	return [...]string{"order_process", "order_cancel_process"}[e]
 }
 
 type BasePayload[R any, S any] struct {

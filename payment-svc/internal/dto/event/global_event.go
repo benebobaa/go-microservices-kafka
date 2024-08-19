@@ -12,11 +12,23 @@ type State int
 const (
 	PENDING State = iota
 	PRODUCT_RESERVATION_SUCCESS
+	PRODUCT_RELEASE_SUCCESS
 	ORDER_CANCEL
 )
 
 func (s State) String() string {
-	return [...]string{"pending", "product_reservation_success", "order_cancel"}[s]
+	return [...]string{"pending", "product_reservation_success", "product_release_success", "order_cancel"}[s]
+}
+
+type EventType int
+
+const (
+	ORDER_PROCESS EventType = iota
+	ORDER_CANCEL_PROCESS
+)
+
+func (e EventType) String() string {
+	return [...]string{"order_process", "order_cancel_process"}[e]
 }
 
 type BasePayload[R any, S any] struct {

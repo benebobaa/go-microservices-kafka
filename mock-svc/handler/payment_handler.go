@@ -24,8 +24,12 @@ type Transaction struct {
 }
 
 type Balance struct {
-	AccountID string  `json:"account_id"`
+	AccountID string  `json:"account_bank_id"`
 	Balance   float64 `json:"balance"`
+}
+
+type BalanceRequest struct {
+	Balance float64 `json:"balance" valo:"min=1000"`
 }
 
 type TransactionRequest struct {
@@ -43,6 +47,33 @@ type PaymentHandler struct {
 	dbB map[string]Balance
 
 	mutex *sync.RWMutex
+}
+
+func (h *PaymentHandler) CreateBalance(c *gin.Context) {
+	var req BalanceRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
+		return
+	}
+
+	err := valo.Validate(req)
+	if err != nil {
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
+		return
+	}
+
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	balance := Balance{
+		AccountID: "AC-" + uuid.New().String(),
+		Balance:   req.Balance,
+	}
+
+	h.dbB[balance.AccountID] = balance
+
+	c.JSON(201, gin.H{"status_code": 201, "data": balance})
 }
 
 func (h *PaymentHandler) GetBalance(c *gin.Context) {

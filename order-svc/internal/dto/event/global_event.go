@@ -13,14 +13,16 @@ type State int
 
 const (
 	PAYMENT_SUCCESS State = iota
+	USER_VALIDATION_SUCCESS
 	PRODUCT_RELEASE_SUCCESS
 	PRODUCT_RESERVATION_FAILED
 	USER_VALIDATION_FAILED
 	REFUND_SUCCESS
+	REFUND_FAILED
 )
 
 func (s State) String() string {
-	return [...]string{"payment_success", "product_release_success", "product_reservation_failed", "user_validation_failed", "refund_success"}[s]
+	return [...]string{"payment_success", "user_validation_success", "product_release_success", "product_reservation_failed", "user_validation_failed", "refund_success", "refund_failed"}[s]
 }
 
 type EventType int

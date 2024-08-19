@@ -21,6 +21,7 @@ func main() {
 
 	gin.GET("/users", uh.GetUser)
 	gin.GET("/users/:username", uh.GetuUserByUsername)
+	gin.POST("/users", uh.CreateUser)
 
 	gin.GET("/products", ph.GetProduct)
 	gin.POST("/products/reserve", ph.ReserveProduct)
@@ -30,6 +31,7 @@ func main() {
 	gin.GET("/transactions", pyh.GetTransaction)
 	gin.POST("/payment", pyh.CreateTransaction)
 	gin.PATCH("/payment/refund", pyh.RefundTransaction)
+	gin.POST("/balances", pyh.CreateBalance)
 
 	gracefulShutdown(pyh)
 

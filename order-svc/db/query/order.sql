@@ -6,7 +6,7 @@ VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
 UPDATE orders
 SET 
     status = $1,
-    total_amount = $2,
+    amount = $2,
     quantity = $3,
     updated_at = CURRENT_TIMESTAMP
 WHERE 

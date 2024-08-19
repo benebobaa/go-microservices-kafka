@@ -29,17 +29,19 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 			log.Println("Error parsing message: ", err)
 		}
 
-		switch eventMsg.State {
-		case event.PRODUCT_RESERVATION_SUCCESS.String():
-			err := h.u.ProcessPaymentMessaging(sess.Context(), eventMsg)
-			if err != nil {
-				log.Println("Error processing payment: ", err)
+		switch eventMsg.EventType {
+		case event.ORDER_PROCESS.String():
+			if eventMsg.State == event.PRODUCT_RESERVATION_SUCCESS.String() {
+				err = h.u.ProcessPaymentMessaging(sess.Context(), eventMsg)
 			}
-		case event.ORDER_CANCEL.String():
-			err := h.u.RefundPaymentMessaging(sess.Context(), eventMsg)
-			if err != nil {
-				log.Println("Error refunding payment: ", err)
+		case event.ORDER_CANCEL_PROCESS.String():
+			if eventMsg.State == event.PRODUCT_RELEASE_SUCCESS.String() {
+				err = h.u.RefundPaymentMessaging(sess.Context(), eventMsg)
 			}
+		}
+
+		if err != nil {
+			log.Println("Error processing message: ", err)
 		}
 
 		sess.MarkMessage(msg, "")

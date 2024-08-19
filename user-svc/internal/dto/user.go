@@ -4,6 +4,11 @@ type UserValidateRequest struct {
 	Username string `json:"username"`
 }
 
+type UserCreateRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
 type UserResponse struct {
 	ID            string `json:"id"`
 	Username      string `json:"username"`

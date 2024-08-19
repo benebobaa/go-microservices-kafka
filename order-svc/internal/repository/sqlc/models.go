@@ -9,16 +9,26 @@ import (
 	"time"
 )
 
+type BankAccountRegistration struct {
+	ID         int32     `json:"id"`
+	CustomerID string    `json:"customer_id"`
+	Username   string    `json:"username"`
+	Email      string    `json:"email"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
 type Order struct {
-	ID          int32           `json:"id"`
-	RefID       string          `json:"ref_id"`
-	CustomerID  string          `json:"customer_id"`
-	Username    string          `json:"username"`
-	ProductID   string          `json:"product_id"`
-	Quantity    int32           `json:"quantity"`
-	OrderDate   time.Time       `json:"order_date"`
-	Status      string          `json:"status"`
-	TotalAmount sql.NullFloat64 `json:"total_amount"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+	ID         int32           `json:"id"`
+	RefID      string          `json:"ref_id"`
+	CustomerID string          `json:"customer_id"`
+	Username   string          `json:"username"`
+	ProductID  string          `json:"product_id"`
+	Quantity   int32           `json:"quantity"`
+	OrderDate  time.Time       `json:"order_date"`
+	Status     string          `json:"status"`
+	Amount     sql.NullFloat64 `json:"amount"`
+	CreatedAt  time.Time       `json:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
 }

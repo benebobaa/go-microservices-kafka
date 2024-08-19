@@ -117,3 +117,5 @@ func (u *Usecase) ValidateUser(ctx context.Context, request *dto.UserValidateReq
 
 	return &response, nil
 }
+
+//func

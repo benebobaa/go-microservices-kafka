@@ -88,7 +88,7 @@ func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelReq
 
 	reqUpdate := &dto.OrderUpdateRequest{
 		RefID:     order.RefID,
-		Amount:    order.TotalAmount.Float64,
+		Amount:    order.Amount.Float64,
 		Quantity:  order.Quantity,
 		Status:    dto.CANCEL_PROCESSING.String(),
 		EventType: event.ORDER_CANCEL_PROCESS.String(),
@@ -149,7 +149,7 @@ func (oc *OrderUsecase) UpdateOrderMessaging(ctx context.Context, req event.Glob
 	} else {
 		updateReq = dto.OrderUpdateRequest{
 			RefID:     order.RefID,
-			Amount:    order.TotalAmount.Float64,
+			Amount:    order.Amount.Float64,
 			Status:    req.Payload.Request.Status,
 			Quantity:  order.Quantity,
 			EventType: req.EventType,
@@ -198,7 +198,7 @@ func (oc *OrderUsecase) UpdateOrder(ctx context.Context, req *dto.OrderUpdateReq
 
 	updatedOrder, err := oc.queries.UpdateOrder(ctx, sqlc.UpdateOrderParams{
 		Status: req.Status,
-		TotalAmount: sql.NullFloat64{
+		Amount: sql.NullFloat64{
 			Float64: req.Amount,
 			Valid:   true,
 		},
