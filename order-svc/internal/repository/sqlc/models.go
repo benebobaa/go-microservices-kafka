@@ -13,6 +13,7 @@ type BankAccountRegistration struct {
 	ID         int32     `json:"id"`
 	CustomerID string    `json:"customer_id"`
 	Username   string    `json:"username"`
+	Deposit    float64   `json:"deposit"`
 	Email      string    `json:"email"`
 	Status     string    `json:"status"`
 	CreatedAt  time.Time `json:"created_at"`

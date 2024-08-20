@@ -13,10 +13,11 @@ const (
 	PENDING State = iota
 	ORDER_CREATED
 	ORDER_CANCEL
+	BANK_REGIS_CREATED
 )
 
 func (s State) String() string {
-	return [...]string{"pending", "order_created", "order_cancel"}[s]
+	return [...]string{"pending", "order_created", "order_cancel", "bank_regis_created"}[s]
 }
 
 type BasePayload[R any, S any] struct {

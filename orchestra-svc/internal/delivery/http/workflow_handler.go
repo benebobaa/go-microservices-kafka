@@ -23,16 +23,6 @@ func NewWorkflowHandler(
 	}
 }
 
-func (wf *WorkflowHandler) CreateWorkflow(c *gin.Context) {
-
-	c.JSON(200, "response")
-}
-
-func (wf *WorkflowHandler) GetStepsByType(c *gin.Context) {
-
-	c.JSON(200, "response")
-}
-
 func (wf *WorkflowHandler) RetryProductReserve(c *gin.Context) {
 
 	var req dto.ProductQuantityRetryRequest

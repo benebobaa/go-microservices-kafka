@@ -17,12 +17,12 @@ import (
 )
 
 type OrchestraUsecase struct {
-	queries  sqlc.Querier
+	queries  sqlc.Store
 	producer *producer.KafkaProducer
 	cache    *cache.PayloadCacher
 }
 
-func NewOrchestraUsecase(q sqlc.Querier, p *producer.KafkaProducer, c *cache.PayloadCacher) *OrchestraUsecase {
+func NewOrchestraUsecase(q sqlc.Store, p *producer.KafkaProducer, c *cache.PayloadCacher) *OrchestraUsecase {
 	return &OrchestraUsecase{
 		queries:  q,
 		producer: p,
@@ -31,6 +31,9 @@ func NewOrchestraUsecase(q sqlc.Querier, p *producer.KafkaProducer, c *cache.Pay
 }
 
 func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.GlobalEvent[any, any]) error {
+
+	log.Println("Processing workflow: ", eventMsg.EventType)
+	log.Println("Processing state: ", eventMsg.State)
 
 	err := o.logDB(ctx, eventMsg)
 
@@ -51,7 +54,6 @@ func (o *OrchestraUsecase) ProcessWorkflow(ctx context.Context, eventMsg event.G
 	err = o.handleInstanceStep(ctx, eventMsg)
 	if err != nil {
 		log.Println("Error handling instance step: ", err)
-		return err
 	}
 
 	instance, err := o.getOrCreateWorkflowInstance(ctx, eventMsg, wf)
@@ -69,9 +71,7 @@ func (o *OrchestraUsecase) getCachePayload(instanceID string, source string, res
 		cachePayload = make(map[string]any)
 	}
 
-	//if _, exists := cachePayload[source]; !exists {
 	cachePayload[source] = response
-	//}
 
 	o.cache.Set(instanceID, cachePayload)
 	return cachePayload, nil
@@ -82,11 +82,9 @@ func (o *OrchestraUsecase) handleInstanceStep(ctx context.Context, eventMsg even
 	if err != nil {
 		log.Println("Error find instance step by event id: ", err)
 		//return fmt.Errorf("check instance step exists: %w", err)
+		return err
 	}
 
-	// TODO: should retry when the status is 500
-	// send message again based on instance step status
-	// max retry 3 times, if still failed, mark the instance step as failed
 	if eventMsg.StatusCode >= 500 {
 		log.Println("err server 500: ", instanceStep.StepID)
 	}
@@ -117,7 +115,7 @@ func (o *OrchestraUsecase) handleInstanceStep(ctx context.Context, eventMsg even
 }
 
 func (o *OrchestraUsecase) getOrCreateWorkflowInstance(ctx context.Context, eventMsg event.GlobalEvent[any, any], wf sqlc.Workflow) (sqlc.WorkflowInstance, error) {
-	if eventMsg.State == event.ORDER_CREATED.String() || eventMsg.State == event.ORDER_CANCEL.String() {
+	if eventMsg.State == event.ORDER_CREATED.String() || eventMsg.State == event.ORDER_CANCEL.String() || eventMsg.State == event.BANK_REGIS_CREATED.String() {
 		return o.queries.CreateWorkflowInstance(ctx, sqlc.CreateWorkflowInstanceParams{
 			ID:         eventMsg.InstanceID,
 			WorkflowID: wf.ID,

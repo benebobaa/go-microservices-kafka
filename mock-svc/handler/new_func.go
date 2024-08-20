@@ -85,7 +85,6 @@ func NewPaymentHandler() *PaymentHandler {
 	}
 
 	if err := h.LoadData(); err != nil {
-		// Handle error, possibly log it or return nil and handle it in the main function
 		fmt.Println("Error loading data:", err)
 	}
 

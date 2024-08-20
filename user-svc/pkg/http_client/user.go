@@ -74,3 +74,7 @@ func (r *UserClient) GET(ctx context.Context, suffix string, request any, respon
 func (r *UserClient) POST(ctx context.Context, suffix string, request any, response any) error {
 	return r.call(ctx, suffix, http.MethodPost, request, response)
 }
+
+func (r *UserClient) PATCH(ctx context.Context, suffix string, request any, response any) error {
+	return r.call(ctx, suffix, http.MethodPatch, request, response)
+}

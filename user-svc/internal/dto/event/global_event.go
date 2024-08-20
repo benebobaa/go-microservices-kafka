@@ -11,19 +11,28 @@ type State int
 
 const (
 	PENDING State = iota
-	ORDER_CREATED
-	PRODUCT_RESERVE_FAILED
-	PAYMENT_FAILED
-	PAYMENT_SUCCESS
+	BANK_BALANCE_CREATED
 )
 
 func (s State) String() string {
-	return [...]string{"PENDING", "ORDER_CREATED", "PRODUCT_RESERVE_FAILED", "PAYMENT_FAILED", "PAYMENT_SUCCESS"}[s]
+	return [...]string{"pending", "bank_account_created"}[s]
 }
 
 type BasePayload[R any, S any] struct {
 	Request  R `json:"request"`
 	Response S `json:"response"`
+}
+
+type EventType int
+
+const (
+	ORDER_PROCESS EventType = iota
+	ORDER_CANCEL_PROCESS
+	BANK_ACCOUNT_REGISTRATION
+)
+
+func (e EventType) String() string {
+	return [...]string{"order_process", "order_cancel_process", "bank_account_registration"}[e]
 }
 
 type GlobalEvent[R any, S any] struct {

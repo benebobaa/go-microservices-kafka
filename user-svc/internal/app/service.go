@@ -2,8 +2,8 @@ package app
 
 import (
 	"time"
-	"user-svc/internal/delivery/http"
 	"user-svc/internal/delivery/messaging"
+	"user-svc/internal/provider"
 	"user-svc/internal/usecase"
 	"user-svc/pkg/http_client"
 	"user-svc/pkg/producer"
@@ -16,12 +16,11 @@ func (app *App) startService(orchestraProducer *producer.KafkaProducer) error {
 		5*time.Second,
 	)
 
-	usecase := usecase.NewUsecase(userClient, orchestraProducer)
+	userProvider := provider.NewUserProvider(userClient)
 
-	app.msg = messaging.NewMessageHandler(usecase)
+	uc := usecase.NewUsecase(userClient, orchestraProducer, userProvider)
 
-	handler := http.NewHandler(usecase)
-	app.gin.GET("/send-message", handler.TestValidate)
+	app.msg = messaging.NewMessageHandler(uc)
 
 	return nil
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"product-svc/internal/delivery/messaging"
+	"product-svc/internal/provider"
 	"product-svc/internal/usecase"
 	"product-svc/pkg/http_client"
 	"product-svc/pkg/producer"
@@ -15,7 +16,9 @@ func (app *App) startService(orchestraProducer *producer.KafkaProducer) error {
 		5*time.Second,
 	)
 
-	u := usecase.NewUsecase(productClient, orchestraProducer)
+	productProvider := provider.NewProductProviderImpl(productClient)
+
+	u := usecase.NewUsecase(productProvider, orchestraProducer)
 
 	app.msg = messaging.NewMessageHandler(u)
 

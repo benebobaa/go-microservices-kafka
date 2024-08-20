@@ -9,6 +9,10 @@ dropdb:
 sqlc:
 	sqlc generate
 
+mockdb:
+	mockgen -source=internal/repository/sqlc/store.go -package mockdb -destination=internal/repository/mock/store.go
+
+
 migratecreate:
 	migrate create -ext sql -dir db/migration -seq $(name)
 

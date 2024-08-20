@@ -11,3 +11,7 @@ func (oh *OrderHandler) RegisterRoutes(router *gin.RouterGroup) {
 	router.PATCH("/cancel", oh.CancelOrder)
 	router.GET("/", oh.FindAll)
 }
+
+func (brh *BankRegisHandler) RegisterRoutes(router *gin.RouterGroup) {
+	router.POST("/", brh.RegisterBankAccount)
+}

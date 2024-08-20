@@ -13,13 +13,13 @@ import (
 )
 
 type RetryUsecase struct {
-	queries  sqlc.Querier
+	queries  sqlc.Store
 	producer *producer.KafkaProducer
 	oc       *OrchestraUsecase
 }
 
 func NewRetryUsecase(
-	queries sqlc.Querier,
+	queries sqlc.Store,
 	producer *producer.KafkaProducer,
 	oc *OrchestraUsecase,
 ) *RetryUsecase {

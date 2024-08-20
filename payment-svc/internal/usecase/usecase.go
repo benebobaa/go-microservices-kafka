@@ -3,31 +3,91 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"payment-svc/internal/dto"
 	"payment-svc/internal/dto/event"
-	"payment-svc/pkg/http_client"
+	"payment-svc/internal/provider"
 	"payment-svc/pkg/producer"
-	"time"
-
-	"github.com/benebobaa/retry-it"
-	"github.com/google/uuid"
 )
 
 type Usecase struct {
-	userClient        *http_client.PaymentClient
+	paymentProvider   provider.PaymentProvider
 	orchestraProducer *producer.KafkaProducer
 }
 
-func NewUsecase(userClient *http_client.PaymentClient, orchestraProducer *producer.KafkaProducer) *Usecase {
+func NewUsecase(paymentProvider provider.PaymentProvider, orchestraProducer *producer.KafkaProducer) *Usecase {
 	return &Usecase{
-		userClient:        userClient,
+		paymentProvider:   paymentProvider,
 		orchestraProducer: orchestraProducer,
 	}
 }
 
+func (u *Usecase) CreateAccountBalanceMessaging(ctx context.Context, ge event.GlobalEvent[dto.AccountBalanceRequest, any]) error {
+	response, err := u.paymentProvider.CreateAccountBalance(ctx, &dto.AccountBalanceRequest{
+		Deposit:  ge.Payload.Request.Deposit,
+		Username: ge.Payload.Request.Username,
+	})
+
+	var gevent event.GlobalEvent[dto.AccountBalanceRequest, any]
+
+	basePayload := event.BasePayload[dto.AccountBalanceRequest, any]{
+		Request: ge.Payload.Request,
+	}
+
+	if err != nil {
+		basePayload.Response = err
+
+		gevent = event.NewGlobalEvent[dto.AccountBalanceRequest, any](
+			"create",
+			"error",
+			"bank_account_failed",
+			basePayload,
+		)
+
+		if response.Error != "" {
+			gevent.StatusCode = response.StatusCode
+		} else {
+			gevent.StatusCode = 500
+		}
+
+	} else {
+		basePayload.Response = response.Data
+
+		gevent = event.NewGlobalEvent[dto.AccountBalanceRequest, any](
+			"create",
+			"success",
+			"bank_account_created",
+			basePayload,
+		)
+
+		gevent.StatusCode = response.StatusCode
+	}
+
+	gevent.EventID = ge.EventID
+	gevent.InstanceID = ge.InstanceID
+	gevent.EventType = ge.EventType
+
+	bytes, jsonErr := gevent.ToJSON()
+	if jsonErr != nil {
+		return fmt.Errorf("failed to convert event to JSON: %w", jsonErr)
+	}
+
+	sendErr := u.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+
+	if sendErr != nil {
+		return fmt.Errorf("failed to send message: %w", sendErr)
+	}
+
+	if err != nil {
+		return fmt.Errorf("account balance processing failed: %w", err)
+	}
+
+	return nil
+}
+
 func (u *Usecase) ProcessPaymentMessaging(ctx context.Context, ge event.GlobalEvent[dto.PaymentRequest, any]) error {
-	response, err := u.ProcessPayment(ctx, &dto.PaymentRequest{
+	response, err := u.paymentProvider.ProcessPayment(ctx, &dto.PaymentRequest{
 		RefId:         ge.Payload.Request.RefId,
 		Amount:        ge.Payload.Request.Amount,
 		AccountBankID: ge.Payload.Request.AccountBankID,
@@ -61,6 +121,8 @@ func (u *Usecase) ProcessPaymentMessaging(ctx context.Context, ge event.GlobalEv
 			"payment_success",
 			basePayload,
 		)
+
+		gevent.StatusCode = response.StatusCode
 	}
 
 	log.Println("check state:", gevent.State)
@@ -68,11 +130,6 @@ func (u *Usecase) ProcessPaymentMessaging(ctx context.Context, ge event.GlobalEv
 	gevent.EventID = ge.EventID
 	gevent.InstanceID = ge.InstanceID
 	gevent.EventType = ge.EventType
-	if response != nil {
-		gevent.StatusCode = response.StatusCode
-	} else {
-		gevent.StatusCode = 500
-	}
 
 	log.Println("gevent:", gevent)
 
@@ -94,7 +151,7 @@ func (u *Usecase) ProcessPaymentMessaging(ctx context.Context, ge event.GlobalEv
 }
 
 func (u *Usecase) RefundPaymentMessaging(ctx context.Context, ge event.GlobalEvent[dto.PaymentRequest, any]) error {
-	response, err := u.RefundPayment(ctx, &dto.PaymentRequest{
+	response, err := u.paymentProvider.RefundPayment(ctx, &dto.PaymentRequest{
 		RefId: ge.Payload.Request.RefId,
 	})
 
@@ -150,46 +207,4 @@ func (u *Usecase) RefundPaymentMessaging(ctx context.Context, ge event.GlobalEve
 	}
 
 	return nil
-}
-
-func (u *Usecase) ProcessPayment(ctx context.Context, req *dto.PaymentRequest) (*dto.BaseResponse[dto.Transaction], *dto.ErrorResponse) {
-	var response dto.BaseResponse[dto.Transaction]
-
-	counter := 0
-	err := retryit.Do(ctx, func(ctx context.Context) error {
-		counter++
-		log.Println("retrying payment: ", counter)
-		return u.userClient.POST(ctx, "", req, &response)
-	}, retryit.WithInitialDelay(500*time.Millisecond))
-
-	if err != nil {
-		return &response, &dto.ErrorResponse{Error: err.Error()}
-	}
-
-	if response.StatusCode != 201 {
-		return &response, &dto.ErrorResponse{Error: response.Error}
-	}
-
-	return &response, nil
-}
-
-func (u *Usecase) RefundPayment(ctx context.Context, req *dto.PaymentRequest) (*dto.BaseResponse[dto.Transaction], *dto.ErrorResponse) {
-	var response dto.BaseResponse[dto.Transaction]
-
-	counter := 0
-	err := retryit.Do(ctx, func(ctx context.Context) error {
-		counter++
-		log.Println("retrying refund: ", counter)
-		return u.userClient.PATCH(ctx, "/refund", req, &response)
-	}, retryit.WithInitialDelay(500*time.Millisecond))
-
-	if err != nil {
-		return &response, &dto.ErrorResponse{Error: err.Error()}
-	}
-
-	if response.StatusCode != 200 {
-		return &response, &dto.ErrorResponse{Error: response.Error}
-	}
-
-	return &response, nil
 }

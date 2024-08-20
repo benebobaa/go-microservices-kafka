@@ -6,8 +6,13 @@ require (
 	github.com/IBM/sarama v1.43.2
 	github.com/benebobaa/valo v1.3.1
 	github.com/gin-gonic/gin v1.10.0
+	github.com/golang/mock v1.6.0
 	github.com/joho/godotenv v1.5.1
+	github.com/stretchr/testify v1.9.0
+	go.uber.org/mock v0.4.0
 )
+
+require github.com/pmezard/go-difflib v1.0.0 // indirect
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect

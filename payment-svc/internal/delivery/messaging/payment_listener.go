@@ -29,6 +29,9 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 			log.Println("Error parsing message: ", err)
 		}
 
+		log.Println("Event type: ", eventMsg.EventType)
+		log.Println("Event state: ", eventMsg.State)
+
 		switch eventMsg.EventType {
 		case event.ORDER_PROCESS.String():
 			if eventMsg.State == event.PRODUCT_RESERVATION_SUCCESS.String() {
@@ -38,6 +41,9 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 			if eventMsg.State == event.PRODUCT_RELEASE_SUCCESS.String() {
 				err = h.u.RefundPaymentMessaging(sess.Context(), eventMsg)
 			}
+		case event.BANK_ACCOUNT_REGISTRATION.String():
+			eventMsg, _ := event.FromJSON[dto.AccountBalanceRequest, any](msg.Value)
+			err = h.u.CreateAccountBalanceMessaging(sess.Context(), eventMsg)
 		}
 
 		if err != nil {

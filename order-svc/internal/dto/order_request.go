@@ -8,10 +8,11 @@ const (
 	CANCEL_PROCESSING
 	COMPLETE
 	CANCELLED
+	FAILED
 )
 
 func (s Status) String() string {
-	return [...]string{"PENDING", "PROCESSING", "CANCEL_PROCESSING", "COMPLETE", "CANCELLED"}[s]
+	return [...]string{"PENDING", "PROCESSING", "CANCEL_PROCESSING", "COMPLETE", "CANCELLED", "FAILED"}[s]
 }
 
 type OrderRequest struct {
@@ -33,14 +34,3 @@ type OrderCancelRequest struct {
 	OrderID  int    `json:"order_id" valo:"min=1"`
 	Username string `json:"-"`
 }
-
-// Entity
-// type Order struct {
-// 	ID          int32          `json:"id"`
-// 	CustomerID  string         `json:"customer_id"`
-// 	Username    string         `json:"username"`
-// 	ProductName string         `json:"product_name"`
-// 	OrderDate   time.Time      `json:"order_date"`
-// 	Status      string         `json:"status"`
-// 	TotalAmount sql.NullString `json:"total_amount"`
-// }

@@ -4,6 +4,9 @@ createdb:
 dropdb:
 	sudo docker exec -it postgres dropdb order_svc
 
+mockdb:
+	mockgen -source=internal/repository/sqlc/store.go -package mockdb -destination=internal/repository/mock/store.go
+
 sqlc:
 	sqlc generate
 

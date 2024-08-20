@@ -1,8 +1,8 @@
 package app
 
 import (
-	"payment-svc/internal/delivery/http"
 	"payment-svc/internal/delivery/messaging"
+	"payment-svc/internal/provider"
 	"payment-svc/internal/usecase"
 	"payment-svc/pkg/http_client"
 	"payment-svc/pkg/producer"
@@ -11,16 +11,16 @@ import (
 
 func (app *App) startService(orchestraProducer *producer.KafkaProducer) error {
 
-	userClient := http_client.NewPaymentClient(
+	client := http_client.NewPaymentClient(
 		app.config.ClientUrl,
 		5*time.Second,
 	)
 
-	usecase := usecase.NewUsecase(userClient, orchestraProducer)
+	paymentProvider := provider.NewPaymentProviderImpl(client)
 
-	app.msg = messaging.NewMessageHandler(usecase)
+	uc := usecase.NewUsecase(paymentProvider, orchestraProducer)
 
-	_ = http.NewHandler(usecase)
+	app.msg = messaging.NewMessageHandler(uc)
 
 	return nil
 }

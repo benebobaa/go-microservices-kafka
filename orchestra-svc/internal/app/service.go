@@ -11,9 +11,9 @@ import (
 
 func (app *App) startService(userProductProducer *producer.KafkaProducer) error {
 
-	s := sqlc.New(app.db)
+	s := sqlc.NewStore(app.db)
 	c := cache.NewPayloadCache()
-	// oc := usecase.NewOrderUsecase(producer)
+
 	orc := usecase.NewOrchestraUsecase(s, userProductProducer, c)
 	rc := usecase.NewRetryUsecase(s, userProductProducer, orc)
 

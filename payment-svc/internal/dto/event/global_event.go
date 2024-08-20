@@ -25,10 +25,11 @@ type EventType int
 const (
 	ORDER_PROCESS EventType = iota
 	ORDER_CANCEL_PROCESS
+	BANK_ACCOUNT_REGISTRATION
 )
 
 func (e EventType) String() string {
-	return [...]string{"order_process", "order_cancel_process"}[e]
+	return [...]string{"order_process", "order_cancel_process", "bank_account_registration"}[e]
 }
 
 type BasePayload[R any, S any] struct {

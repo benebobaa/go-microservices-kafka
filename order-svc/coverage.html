@@ -1,0 +1,1980 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>app: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">order-svc/internal/app/app.go (0.0%)</option>
+				
+				<option value="file1">order-svc/internal/app/service.go (0.0%)</option>
+				
+				<option value="file2">order-svc/internal/delivery/http/auth_handler.go (0.0%)</option>
+				
+				<option value="file3">order-svc/internal/delivery/http/bank_regis_handler.go (85.7%)</option>
+				
+				<option value="file4">order-svc/internal/delivery/http/order_handler.go (88.5%)</option>
+				
+				<option value="file5">order-svc/internal/delivery/http/routes.go (0.0%)</option>
+				
+				<option value="file6">order-svc/internal/delivery/messaging/order_listener.go (0.0%)</option>
+				
+				<option value="file7">order-svc/internal/dto/event/global_event.go (42.9%)</option>
+				
+				<option value="file8">order-svc/internal/dto/order_request.go (100.0%)</option>
+				
+				<option value="file9">order-svc/internal/middleware/auth.go (0.0%)</option>
+				
+				<option value="file10">order-svc/internal/repository/mock/store.go (79.1%)</option>
+				
+				<option value="file11">order-svc/internal/repository/sqlc/bank_account.sql.go (0.0%)</option>
+				
+				<option value="file12">order-svc/internal/repository/sqlc/db.go (0.0%)</option>
+				
+				<option value="file13">order-svc/internal/repository/sqlc/order.sql.go (0.0%)</option>
+				
+				<option value="file14">order-svc/internal/repository/sqlc/store.go (0.0%)</option>
+				
+				<option value="file15">order-svc/internal/usecase/bank_registration_usecase.go (85.2%)</option>
+				
+				<option value="file16">order-svc/internal/usecase/order_usecase.go (85.1%)</option>
+				
+				<option value="file17">order-svc/main.go (0.0%)</option>
+				
+				<option value="file18">order-svc/pkg/config.go (0.0%)</option>
+				
+				<option value="file19">order-svc/pkg/consumer/kafka_consumer.go (0.0%)</option>
+				
+				<option value="file20">order-svc/pkg/dbconn.go (0.0%)</option>
+				
+				<option value="file21">order-svc/pkg/jwt.go (0.0%)</option>
+				
+				<option value="file22">order-svc/pkg/producer/kafka_producer.go (85.7%)</option>
+				
+				<option value="file23">order-svc/pkg/random.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package app
+
+import (
+        "context"
+        "database/sql"
+        "errors"
+        "fmt"
+        "log"
+        "net/http"
+        "order-svc/internal/delivery/messaging"
+        "order-svc/pkg"
+        "order-svc/pkg/consumer"
+        "order-svc/pkg/producer"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/gin-gonic/gin"
+)
+
+type App struct {
+        db     *sql.DB
+        gin    *gin.Engine
+        config *pkg.Config
+        msg    *messaging.MessageHandler
+}
+
+func NewApp(db *sql.DB, gin *gin.Engine, config *pkg.Config) *App <span class="cov0" title="0">{
+        return &amp;App{db: db, gin: gin, config: config}
+}</span>
+
+func (app *App) Run() <span class="cov0" title="0">{
+        orchestraProducer, err := producer.NewKafkaProducer(
+                []string{app.config.KafkaBroker},
+                app.config.OrchestraTopic,
+        )
+        defer orchestraProducer.Close()
+
+        if err := app.startService(orchestraProducer); err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error starting service: %v", err)
+        }</span>
+
+        <span class="cov0" title="0">server := http.Server{
+                Addr:    fmt.Sprintf(":%s", app.config.Port),
+                Handler: app.gin,
+        }
+
+        consumer, err := consumer.NewKafkaConsumer(
+                []string{app.config.KafkaBroker},
+                app.config.GroupID,
+                []string{app.config.OrderTopic},
+                app.msg,
+        )
+        defer consumer.Close()
+
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error creating Kafka consumer: %v", err)
+        }</span>
+
+        <span class="cov0" title="0">ctxCancel, cancel2 := context.WithCancel(context.Background())
+        defer cancel2()
+
+        go func() </span><span class="cov0" title="0">{
+                if err := consumer.Consume(ctxCancel); err != nil </span><span class="cov0" title="0">{
+                        log.Fatalf("Error consuming Kafka messages: %v", err)
+                }</span>
+        }()
+
+        <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                log.Println("Starting server...")
+                if err := server.ListenAndServe(); err != nil &amp;&amp; !errors.Is(err, http.ErrServerClosed) </span><span class="cov0" title="0">{
+                        log.Fatalf("listen: %s\n", err)
+                }</span>
+        }()
+
+        <span class="cov0" title="0">quit := make(chan os.Signal, 1)
+
+        signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+        // Waiting signal send to chan quit
+        // Blocking channel
+        &lt;-quit
+        log.Println("Shutdown Server ...")
+
+        ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+        defer cancel()
+
+        if err := server.Shutdown(ctx); err != nil </span><span class="cov0" title="0">{
+                log.Fatal("Server Shutdown:", err)
+        }</span>
+
+        <span class="cov0" title="0">select </span>{
+        case &lt;-ctx.Done():<span class="cov0" title="0">
+                log.Println("timeout of 5 seconds.")</span>
+        }
+
+        <span class="cov0" title="0">log.Println("Server exiting")</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package app
+
+import (
+        "order-svc/internal/delivery/http"
+        "order-svc/internal/delivery/messaging"
+        "order-svc/internal/middleware"
+        "order-svc/internal/repository/sqlc"
+        "order-svc/internal/usecase"
+        "order-svc/pkg/producer"
+)
+
+func (app *App) startService(orchestraProducer *producer.KafkaProducer) error <span class="cov0" title="0">{
+
+        sqlc := sqlc.NewStore(app.db)
+
+        orderUsecase := usecase.NewOrderUsecase(sqlc, orchestraProducer)
+        bankRegisUsecase := usecase.NewBankRegistrationUsecase(sqlc, orchestraProducer)
+
+        app.msg = messaging.NewMessageHandler(orderUsecase, bankRegisUsecase)
+
+        authHandler := http.NewAuthHandler()
+        orderHandler := http.NewOrderHandler(orderUsecase)
+        bankRegisHandler := http.NewBankRegisHandler(bankRegisUsecase)
+
+        apiV1 := app.gin.Group("/api/v1")
+
+        authV1 := apiV1.Group("/auth")
+        orderV1 := apiV1.Group("/order")
+        bankRegisV1 := apiV1.Group("/bank")
+
+        orderV1.Use(middleware.AuthMiddleware())
+
+        authHandler.RegisterRoutes(authV1)
+        orderHandler.RegisterRoutes(orderV1)
+        bankRegisHandler.RegisterRoutes(bankRegisV1)
+
+        return nil
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package http
+
+import (
+        "order-svc/internal/dto"
+        "order-svc/pkg"
+
+        "github.com/benebobaa/valo"
+        "github.com/gin-gonic/gin"
+        "github.com/google/uuid"
+)
+
+type AuthHandler struct {
+}
+
+func NewAuthHandler() *AuthHandler <span class="cov0" title="0">{
+        return &amp;AuthHandler{}
+}</span>
+
+func (ah *AuthHandler) Authenticate(c *gin.Context) <span class="cov0" title="0">{
+
+        var req dto.AuthRequest
+
+        if err := c.ShouldBindJSON(&amp;req); err != nil </span><span class="cov0" title="0">{
+                c.JSON(400, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err := valo.Validate(req)
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(400, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">userInfo := pkg.UserInfo{
+                ID:       uuid.New().String(),
+                Username: req.Username,
+        }
+        token, err := pkg.GenerateToken(userInfo)
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(500, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(200, dto.AuthResponse{
+                User:  userInfo,
+                Token: token,
+        })</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package http
+
+import (
+        "github.com/benebobaa/valo"
+        "github.com/gin-gonic/gin"
+        "order-svc/internal/dto"
+        "order-svc/internal/usecase"
+)
+
+type BankRegisHandler struct {
+        usecase *usecase.BankRegistrationUsecase
+}
+
+func NewBankRegisHandler(usecase *usecase.BankRegistrationUsecase) *BankRegisHandler <span class="cov8" title="1">{
+        return &amp;BankRegisHandler{usecase: usecase}
+}</span>
+
+func (brh *BankRegisHandler) RegisterBankAccount(c *gin.Context) <span class="cov8" title="1">{
+
+        var req dto.BankRegistrationRequest
+
+        if err := c.ShouldBindJSON(&amp;req); err != nil </span><span class="cov8" title="1">{
+                c.JSON(400, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">err := valo.Validate(req)
+
+        if err != nil </span><span class="cov8" title="1">{
+                c.JSON(400, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">response, err := brh.usecase.RegisterBankAccount(c, &amp;req)
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(500, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(200, response)</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package http
+
+import (
+        "errors"
+        "order-svc/internal/dto"
+        "order-svc/internal/middleware"
+        "order-svc/internal/usecase"
+        "order-svc/pkg"
+        "strconv"
+
+        "github.com/benebobaa/valo"
+        "github.com/gin-gonic/gin"
+)
+
+type OrderHandler struct {
+        usecase *usecase.OrderUsecase
+}
+
+func NewOrderHandler(usecase *usecase.OrderUsecase) *OrderHandler <span class="cov8" title="1">{
+        return &amp;OrderHandler{usecase: usecase}
+}</span>
+
+func (oh *OrderHandler) CreateOrder(c *gin.Context) <span class="cov8" title="1">{
+
+        user := c.MustGet(middleware.ClaimsKey).(*pkg.UserInfo)
+
+        var req dto.OrderRequest
+
+        if err := c.ShouldBindJSON(&amp;req); err != nil </span><span class="cov8" title="1">{
+                c.JSON(400, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">err := valo.Validate(req)
+
+        if err != nil </span><span class="cov8" title="1">{
+                c.JSON(400, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">req.CustomerID = user.ID
+        req.Username = user.Username
+        response, err := oh.usecase.CreateOrder(c, &amp;req)
+
+        if err != nil </span><span class="cov8" title="1">{
+                c.JSON(500, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(200, response)</span>
+}
+
+func (oh *OrderHandler) CancelOrder(c *gin.Context) <span class="cov8" title="1">{
+
+        user := c.MustGet(middleware.ClaimsKey).(*pkg.UserInfo)
+        var (
+                req dto.OrderCancelRequest
+                err error
+        )
+
+        orderId := c.Query("order_id")
+
+        if orderId == "" </span><span class="cov0" title="0">{
+                c.JSON(400, gin.H{"error": "order_id cannot be empty"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">req.OrderID, err = strconv.Atoi(orderId)
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(400, gin.H{"error": "order_id must be a number"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">err = valo.Validate(req)
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(400, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">req.Username = user.Username
+        response, err := oh.usecase.CancelOrder(c, &amp;req)
+
+        if err != nil </span><span class="cov8" title="1">{
+                if errors.Is(err, usecase.ErrUnauthorizeCancelOrder) </span><span class="cov8" title="1">{
+                        c.JSON(401, gin.H{"error": err.Error()})
+                        return
+                }</span>
+                <span class="cov8" title="1">if errors.Is(err, usecase.ErrCannotCancelOrder) </span><span class="cov8" title="1">{
+                        c.JSON(400, gin.H{"error": err.Error()})
+                        return
+                }</span>
+
+                <span class="cov8" title="1">c.JSON(500, gin.H{"error": err.Error()})
+                return</span>
+        }
+
+        <span class="cov8" title="1">c.JSON(200, response)</span>
+}
+
+func (oh *OrderHandler) FindAll(c *gin.Context) <span class="cov8" title="1">{
+
+        user := c.MustGet(middleware.ClaimsKey).(*pkg.UserInfo)
+
+        if user.Username == "" </span><span class="cov8" title="1">{
+                c.JSON(400, gin.H{"error": "username not found"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">response, err := oh.usecase.FindAllOrder(c, user.Username)
+
+        if err != nil </span><span class="cov8" title="1">{
+                c.JSON(500, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(200, response)</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package http
+
+import "github.com/gin-gonic/gin"
+
+func (ah *AuthHandler) RegisterRoutes(router *gin.RouterGroup) <span class="cov0" title="0">{
+        router.POST("/guest", ah.Authenticate)
+}</span>
+
+func (oh *OrderHandler) RegisterRoutes(router *gin.RouterGroup) <span class="cov0" title="0">{
+        router.POST("/", oh.CreateOrder)
+        router.PATCH("/cancel", oh.CancelOrder)
+        router.GET("/", oh.FindAll)
+}</span>
+
+func (brh *BankRegisHandler) RegisterRoutes(router *gin.RouterGroup) <span class="cov0" title="0">{
+        router.POST("/", brh.RegisterBankAccount)
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package messaging
+
+import (
+        "log"
+        "order-svc/internal/dto"
+        "order-svc/internal/dto/event"
+        "order-svc/internal/usecase"
+
+        "github.com/IBM/sarama"
+)
+
+type MessageHandler struct {
+        oc  *usecase.OrderUsecase
+        brc *usecase.BankRegistrationUsecase
+}
+
+func NewMessageHandler(oc *usecase.OrderUsecase, brc *usecase.BankRegistrationUsecase) *MessageHandler <span class="cov0" title="0">{
+        return &amp;MessageHandler{
+                oc:  oc,
+                brc: brc,
+        }
+}</span>
+
+func (h MessageHandler) Setup(_ sarama.ConsumerGroupSession) error   <span class="cov0" title="0">{ return nil }</span>
+func (h MessageHandler) Cleanup(_ sarama.ConsumerGroupSession) error <span class="cov0" title="0">{ return nil }</span>
+
+func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error <span class="cov0" title="0">{
+
+        for msg := range claim.Messages() </span><span class="cov0" title="0">{
+
+                eventMsg, err := event.FromJSON[dto.OrderUpdateRequest, any](msg.Value)
+
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Println("failed parse event: ", err.Error())
+                }</span>
+
+                <span class="cov0" title="0">switch eventMsg.EventType </span>{
+                case event.ORDER_PROCESS.String():<span class="cov0" title="0">
+                        if eventMsg.State == event.PAYMENT_SUCCESS.String() </span><span class="cov0" title="0">{
+                                eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+                                err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+                        }</span>
+
+                        <span class="cov0" title="0">if eventMsg.State == event.USER_VALIDATION_FAILED.String() </span><span class="cov0" title="0">{
+                                eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+                                err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+                        }</span>
+
+                        <span class="cov0" title="0">if eventMsg.State == event.PRODUCT_RESERVATION_FAILED.String() </span><span class="cov0" title="0">{
+                                eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+                                err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+                        }</span>
+
+                        <span class="cov0" title="0">if eventMsg.State == event.PRODUCT_RELEASE_SUCCESS.String() </span><span class="cov0" title="0">{
+                                eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+                                err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+                        }</span>
+
+                case event.ORDER_CANCEL_PROCESS.String():<span class="cov0" title="0">
+
+                        if eventMsg.State == event.USER_VALIDATION_FAILED.String() </span><span class="cov0" title="0">{
+                                eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+                                err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+                        }</span>
+
+                        <span class="cov0" title="0">if eventMsg.State == event.REFUND_FAILED.String() </span><span class="cov0" title="0">{
+                                eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+                                err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+                        }</span>
+
+                        <span class="cov0" title="0">if eventMsg.State == event.REFUND_SUCCESS.String() </span><span class="cov0" title="0">{
+                                eventMsg.Payload.Request.Status = dto.CANCELLED.String()
+                                err = h.oc.UpdateOrderMessaging(sess.Context(), eventMsg)
+                        }</span>
+
+                case event.BANK_ACCOUNT_REGISTRATION.String():<span class="cov0" title="0">
+                        if eventMsg.State == event.USER_BANKID_UPDATED.String() </span><span class="cov0" title="0">{
+                                eventMsg, _ := event.FromJSON[dto.BankRegistrationUpdate, any](msg.Value)
+                                eventMsg.Payload.Request.Status = dto.COMPLETE.String()
+                                err = h.brc.UpdateBankRegistrationMessaging(sess.Context(), eventMsg)
+                        }</span>
+                }
+
+                <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                        log.Println("failed process event: ", err.Error())
+                }</span>
+
+                <span class="cov0" title="0">sess.MarkMessage(msg, "")</span>
+        }
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package event
+
+import (
+        "encoding/json"
+        "fmt"
+        "order-svc/pkg"
+        "time"
+
+        "github.com/google/uuid"
+)
+
+type State int
+
+const (
+        PAYMENT_SUCCESS State = iota
+        USER_VALIDATION_SUCCESS
+        PRODUCT_RELEASE_SUCCESS
+        PRODUCT_RESERVATION_FAILED
+        USER_VALIDATION_FAILED
+        REFUND_SUCCESS
+        REFUND_FAILED
+        USER_BANKID_UPDATED
+)
+
+func (s State) String() string <span class="cov0" title="0">{
+        return [...]string{"payment_success", "user_validation_success", "product_release_success", "product_reservation_failed", "user_validation_failed", "refund_success", "refund_failed", "user_bankid_updated"}[s]
+}</span>
+
+type EventType int
+
+const (
+        ORDER_PROCESS EventType = iota
+        ORDER_CANCEL_PROCESS
+        BANK_ACCOUNT_REGISTRATION
+)
+
+func (e EventType) String() string <span class="cov8" title="1">{
+        return [...]string{"order_process", "order_cancel_process", "bank_account_registration"}[e]
+}</span>
+
+type BasePayload[R any, S any] struct {
+        Request  R `json:"request"`
+        Response S `json:"response"`
+}
+
+type GlobalEvent[R any, S any] struct {
+        EventID    string            `json:"event_id"`
+        InstanceID string            `json:"instance_id"`
+        EventType  string            `json:"event_type"`
+        State      string            `json:"state"`
+        Timestamp  time.Time         `json:"timestamp"`
+        Source     string            `json:"source"`
+        Action     string            `json:"action"`
+        Status     string            `json:"status"`
+        StatusCode int               `json:"status_code"`
+        Payload    BasePayload[R, S] `json:"payload"`
+}
+
+func NewGlobalEvent[R any, S any](
+        action, status, state, eventType string,
+        payload BasePayload[R, S],
+) GlobalEvent[R, S] <span class="cov8" title="1">{
+        return GlobalEvent[R, S]{
+                EventID:    uuid.New().String(),
+                InstanceID: fmt.Sprintf("I-%s", pkg.GenerateRandom6Char()),
+                State:      state,
+                EventType:  eventType,
+                Timestamp:  time.Now(),
+                Source:     "order-svc",
+                Action:     action,
+                Status:     status,
+                Payload:    payload,
+        }
+}</span>
+func FromJSON[R any, S any](data []byte) (GlobalEvent[R, S], error) <span class="cov0" title="0">{
+        var ge GlobalEvent[R, S]
+        err := json.Unmarshal(data, &amp;ge)
+        return ge, err
+}</span>
+
+func (ge GlobalEvent[R, S]) ToJSON() ([]byte, error) <span class="cov8" title="1">{
+        return json.Marshal(ge)
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package dto
+
+type Status int
+
+const (
+        PENDING Status = iota
+        PROCESSING
+        CANCEL_PROCESSING
+        COMPLETE
+        CANCELLED
+        FAILED
+)
+
+func (s Status) String() string <span class="cov8" title="1">{
+        return [...]string{"PENDING", "PROCESSING", "CANCEL_PROCESSING", "COMPLETE", "CANCELLED", "FAILED"}[s]
+}</span>
+
+type OrderRequest struct {
+        ProductID  string `json:"product_id" valo:"notblank"`
+        Quantity   int32  `json:"quantity" valo:"min=1"`
+        CustomerID string `json:"-"`
+        Username   string `json:"-"`
+}
+
+type OrderUpdateRequest struct {
+        RefID     string  `json:"ref_id"`
+        Amount    float64 `json:"amount"`
+        Quantity  int32   `json:"quantity"`
+        Status    string  `json:"-"`
+        EventType string  `json:"-"`
+}
+
+type OrderCancelRequest struct {
+        OrderID  int    `json:"order_id" valo:"min=1"`
+        Username string `json:"-"`
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package middleware
+
+import (
+        "net/http"
+        "order-svc/pkg"
+
+        "github.com/gin-gonic/gin"
+)
+
+const ClaimsKey = "claims"
+
+func AuthMiddleware() gin.HandlerFunc <span class="cov0" title="0">{
+        return func(c *gin.Context) </span><span class="cov0" title="0">{
+                tokenString := c.GetHeader("Authorization")
+                if tokenString == "" </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+                        c.Abort()
+                        return
+                }</span>
+
+                <span class="cov0" title="0">if len(tokenString) &gt; 7 &amp;&amp; tokenString[:7] == "Bearer " </span><span class="cov0" title="0">{
+                        tokenString = tokenString[7:]
+                }</span>
+
+                <span class="cov0" title="0">claims, err := pkg.ValidateToken(tokenString)
+                if err != nil </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+                        c.Abort()
+                        return
+                }</span>
+
+                <span class="cov0" title="0">payload := &amp;pkg.UserInfo{
+                        ID:       claims.User.ID,
+                        Username: claims.User.Username,
+                }
+
+                c.Set(ClaimsKey, payload)
+                c.Next()</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: internal/repository/sqlc/store.go
+//
+// Generated by this command:
+//
+//        mockgen -source=internal/repository/sqlc/store.go -package mockdb -destination=internal/repository/mock/store.go
+//
+
+// Package mockdb is a generated GoMock package.
+package mockdb
+
+import (
+        context "context"
+        sqlc "order-svc/internal/repository/sqlc"
+        reflect "reflect"
+
+        gomock "go.uber.org/mock/gomock"
+)
+
+// MockStore is a mock of Store interface.
+type MockStore struct {
+        ctrl     *gomock.Controller
+        recorder *MockStoreMockRecorder
+}
+
+// MockStoreMockRecorder is the mock recorder for MockStore.
+type MockStoreMockRecorder struct {
+        mock *MockStore
+}
+
+// NewMockStore creates a new mock instance.
+func NewMockStore(ctrl *gomock.Controller) *MockStore <span class="cov8" title="1">{
+        mock := &amp;MockStore{ctrl: ctrl}
+        mock.recorder = &amp;MockStoreMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockStore) EXPECT() *MockStoreMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// CountByID mocks base method.
+func (m *MockStore) CountByID(ctx context.Context, refID string) (int64, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CountByID", ctx, refID)
+        ret0, _ := ret[0].(int64)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// CountByID indicates an expected call of CountByID.
+func (mr *MockStoreMockRecorder) CountByID(ctx, refID any) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountByID", reflect.TypeOf((*MockStore)(nil).CountByID), ctx, refID)
+}</span>
+
+// CreateBankAccountRegistration mocks base method.
+func (m *MockStore) CreateBankAccountRegistration(ctx context.Context, arg sqlc.CreateBankAccountRegistrationParams) (sqlc.BankAccountRegistration, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CreateBankAccountRegistration", ctx, arg)
+        ret0, _ := ret[0].(sqlc.BankAccountRegistration)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// CreateBankAccountRegistration indicates an expected call of CreateBankAccountRegistration.
+func (mr *MockStoreMockRecorder) CreateBankAccountRegistration(ctx, arg any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBankAccountRegistration", reflect.TypeOf((*MockStore)(nil).CreateBankAccountRegistration), ctx, arg)
+}</span>
+
+// CreateOrder mocks base method.
+func (m *MockStore) CreateOrder(ctx context.Context, arg sqlc.CreateOrderParams) (sqlc.Order, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CreateOrder", ctx, arg)
+        ret0, _ := ret[0].(sqlc.Order)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// CreateOrder indicates an expected call of CreateOrder.
+func (mr *MockStoreMockRecorder) CreateOrder(ctx, arg any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockStore)(nil).CreateOrder), ctx, arg)
+}</span>
+
+// FindBankAccountRegistrationByUsernameOrEmail mocks base method.
+func (m *MockStore) FindBankAccountRegistrationByUsernameOrEmail(ctx context.Context, arg sqlc.FindBankAccountRegistrationByUsernameOrEmailParams) (sqlc.BankAccountRegistration, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "FindBankAccountRegistrationByUsernameOrEmail", ctx, arg)
+        ret0, _ := ret[0].(sqlc.BankAccountRegistration)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// FindBankAccountRegistrationByUsernameOrEmail indicates an expected call of FindBankAccountRegistrationByUsernameOrEmail.
+func (mr *MockStoreMockRecorder) FindBankAccountRegistrationByUsernameOrEmail(ctx, arg any) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBankAccountRegistrationByUsernameOrEmail", reflect.TypeOf((*MockStore)(nil).FindBankAccountRegistrationByUsernameOrEmail), ctx, arg)
+}</span>
+
+// FindOrderByID mocks base method.
+func (m *MockStore) FindOrderByID(ctx context.Context, id int32) (sqlc.Order, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "FindOrderByID", ctx, id)
+        ret0, _ := ret[0].(sqlc.Order)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// FindOrderByID indicates an expected call of FindOrderByID.
+func (mr *MockStoreMockRecorder) FindOrderByID(ctx, id any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOrderByID", reflect.TypeOf((*MockStore)(nil).FindOrderByID), ctx, id)
+}</span>
+
+// FindOrderByRefID mocks base method.
+func (m *MockStore) FindOrderByRefID(ctx context.Context, refID string) (sqlc.Order, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "FindOrderByRefID", ctx, refID)
+        ret0, _ := ret[0].(sqlc.Order)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// FindOrderByRefID indicates an expected call of FindOrderByRefID.
+func (mr *MockStoreMockRecorder) FindOrderByRefID(ctx, refID any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOrderByRefID", reflect.TypeOf((*MockStore)(nil).FindOrderByRefID), ctx, refID)
+}</span>
+
+// FindOrdersByUsername mocks base method.
+func (m *MockStore) FindOrdersByUsername(ctx context.Context, username string) ([]sqlc.Order, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "FindOrdersByUsername", ctx, username)
+        ret0, _ := ret[0].([]sqlc.Order)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// FindOrdersByUsername indicates an expected call of FindOrdersByUsername.
+func (mr *MockStoreMockRecorder) FindOrdersByUsername(ctx, username any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOrdersByUsername", reflect.TypeOf((*MockStore)(nil).FindOrdersByUsername), ctx, username)
+}</span>
+
+// UpdateBankAccountRegistration mocks base method.
+func (m *MockStore) UpdateBankAccountRegistration(ctx context.Context, arg sqlc.UpdateBankAccountRegistrationParams) (sqlc.BankAccountRegistration, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "UpdateBankAccountRegistration", ctx, arg)
+        ret0, _ := ret[0].(sqlc.BankAccountRegistration)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// UpdateBankAccountRegistration indicates an expected call of UpdateBankAccountRegistration.
+func (mr *MockStoreMockRecorder) UpdateBankAccountRegistration(ctx, arg any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBankAccountRegistration", reflect.TypeOf((*MockStore)(nil).UpdateBankAccountRegistration), ctx, arg)
+}</span>
+
+// UpdateOrder mocks base method.
+func (m *MockStore) UpdateOrder(ctx context.Context, arg sqlc.UpdateOrderParams) (sqlc.Order, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "UpdateOrder", ctx, arg)
+        ret0, _ := ret[0].(sqlc.Order)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// UpdateOrder indicates an expected call of UpdateOrder.
+func (mr *MockStoreMockRecorder) UpdateOrder(ctx, arg any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrder", reflect.TypeOf((*MockStore)(nil).UpdateOrder), ctx, arg)
+}</span>
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">// Code generated by sqlc. DO NOT EDIT.
+// versions:
+//   sqlc v1.27.0
+// source: bank_account.sql
+
+package sqlc
+
+import (
+        "context"
+)
+
+const createBankAccountRegistration = `-- name: CreateBankAccountRegistration :one
+INSERT INTO bank_account_registration (customer_id, username, email, status, deposit)
+VALUES ($1, $2, $3, $4, $5) RETURNING id, customer_id, username, deposit, email, status, created_at, updated_at
+`
+
+type CreateBankAccountRegistrationParams struct {
+        CustomerID string  `json:"customer_id"`
+        Username   string  `json:"username"`
+        Email      string  `json:"email"`
+        Status     string  `json:"status"`
+        Deposit    float64 `json:"deposit"`
+}
+
+func (q *Queries) CreateBankAccountRegistration(ctx context.Context, arg CreateBankAccountRegistrationParams) (BankAccountRegistration, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, createBankAccountRegistration,
+                arg.CustomerID,
+                arg.Username,
+                arg.Email,
+                arg.Status,
+                arg.Deposit,
+        )
+        var i BankAccountRegistration
+        err := row.Scan(
+                &amp;i.ID,
+                &amp;i.CustomerID,
+                &amp;i.Username,
+                &amp;i.Deposit,
+                &amp;i.Email,
+                &amp;i.Status,
+                &amp;i.CreatedAt,
+                &amp;i.UpdatedAt,
+        )
+        return i, err
+}</span>
+
+const findBankAccountRegistrationByUsernameOrEmail = `-- name: FindBankAccountRegistrationByUsernameOrEmail :one
+SELECT id, customer_id, username, deposit, email, status, created_at, updated_at FROM bank_account_registration
+WHERE username = $1 OR email = $2 LIMIT 1
+`
+
+type FindBankAccountRegistrationByUsernameOrEmailParams struct {
+        Username string `json:"username"`
+        Email    string `json:"email"`
+}
+
+func (q *Queries) FindBankAccountRegistrationByUsernameOrEmail(ctx context.Context, arg FindBankAccountRegistrationByUsernameOrEmailParams) (BankAccountRegistration, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, findBankAccountRegistrationByUsernameOrEmail, arg.Username, arg.Email)
+        var i BankAccountRegistration
+        err := row.Scan(
+                &amp;i.ID,
+                &amp;i.CustomerID,
+                &amp;i.Username,
+                &amp;i.Deposit,
+                &amp;i.Email,
+                &amp;i.Status,
+                &amp;i.CreatedAt,
+                &amp;i.UpdatedAt,
+        )
+        return i, err
+}</span>
+
+const updateBankAccountRegistration = `-- name: UpdateBankAccountRegistration :one
+UPDATE bank_account_registration
+SET
+    status = $1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE
+    username = $2 AND email = $3 AND customer_id = $4 RETURNING id, customer_id, username, deposit, email, status, created_at, updated_at
+`
+
+type UpdateBankAccountRegistrationParams struct {
+        Status     string `json:"status"`
+        Username   string `json:"username"`
+        Email      string `json:"email"`
+        CustomerID string `json:"customer_id"`
+}
+
+func (q *Queries) UpdateBankAccountRegistration(ctx context.Context, arg UpdateBankAccountRegistrationParams) (BankAccountRegistration, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, updateBankAccountRegistration,
+                arg.Status,
+                arg.Username,
+                arg.Email,
+                arg.CustomerID,
+        )
+        var i BankAccountRegistration
+        err := row.Scan(
+                &amp;i.ID,
+                &amp;i.CustomerID,
+                &amp;i.Username,
+                &amp;i.Deposit,
+                &amp;i.Email,
+                &amp;i.Status,
+                &amp;i.CreatedAt,
+                &amp;i.UpdatedAt,
+        )
+        return i, err
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">// Code generated by sqlc. DO NOT EDIT.
+// versions:
+//   sqlc v1.27.0
+
+package sqlc
+
+import (
+        "context"
+        "database/sql"
+)
+
+type DBTX interface {
+        ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+        PrepareContext(context.Context, string) (*sql.Stmt, error)
+        QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
+        QueryRowContext(context.Context, string, ...interface{}) *sql.Row
+}
+
+func New(db DBTX) *Queries <span class="cov0" title="0">{
+        return &amp;Queries{db: db}
+}</span>
+
+type Queries struct {
+        db DBTX
+}
+
+func (q *Queries) WithTx(tx *sql.Tx) *Queries <span class="cov0" title="0">{
+        return &amp;Queries{
+                db: tx,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">// Code generated by sqlc. DO NOT EDIT.
+// versions:
+//   sqlc v1.27.0
+// source: order.sql
+
+package sqlc
+
+import (
+        "context"
+        "database/sql"
+)
+
+const countByID = `-- name: CountByID :one
+SELECT COUNT(*)
+FROM orders
+WHERE ref_id = $1
+`
+
+func (q *Queries) CountByID(ctx context.Context, refID string) (int64, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, countByID, refID)
+        var count int64
+        err := row.Scan(&amp;count)
+        return count, err
+}</span>
+
+const createOrder = `-- name: CreateOrder :one
+INSERT INTO orders (ref_id, customer_id, username, product_id, quantity, status)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, ref_id, customer_id, username, product_id, quantity, order_date, status, amount, created_at, updated_at
+`
+
+type CreateOrderParams struct {
+        RefID      string `json:"ref_id"`
+        CustomerID string `json:"customer_id"`
+        Username   string `json:"username"`
+        ProductID  string `json:"product_id"`
+        Quantity   int32  `json:"quantity"`
+        Status     string `json:"status"`
+}
+
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, createOrder,
+                arg.RefID,
+                arg.CustomerID,
+                arg.Username,
+                arg.ProductID,
+                arg.Quantity,
+                arg.Status,
+        )
+        var i Order
+        err := row.Scan(
+                &amp;i.ID,
+                &amp;i.RefID,
+                &amp;i.CustomerID,
+                &amp;i.Username,
+                &amp;i.ProductID,
+                &amp;i.Quantity,
+                &amp;i.OrderDate,
+                &amp;i.Status,
+                &amp;i.Amount,
+                &amp;i.CreatedAt,
+                &amp;i.UpdatedAt,
+        )
+        return i, err
+}</span>
+
+const findOrderByID = `-- name: FindOrderByID :one
+SELECT id, ref_id, customer_id, username, product_id, quantity, order_date, status, amount, created_at, updated_at FROM orders WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) FindOrderByID(ctx context.Context, id int32) (Order, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, findOrderByID, id)
+        var i Order
+        err := row.Scan(
+                &amp;i.ID,
+                &amp;i.RefID,
+                &amp;i.CustomerID,
+                &amp;i.Username,
+                &amp;i.ProductID,
+                &amp;i.Quantity,
+                &amp;i.OrderDate,
+                &amp;i.Status,
+                &amp;i.Amount,
+                &amp;i.CreatedAt,
+                &amp;i.UpdatedAt,
+        )
+        return i, err
+}</span>
+
+const findOrderByRefID = `-- name: FindOrderByRefID :one
+SELECT id, ref_id, customer_id, username, product_id, quantity, order_date, status, amount, created_at, updated_at FROM orders WHERE ref_id = $1 LIMIT 1
+`
+
+func (q *Queries) FindOrderByRefID(ctx context.Context, refID string) (Order, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, findOrderByRefID, refID)
+        var i Order
+        err := row.Scan(
+                &amp;i.ID,
+                &amp;i.RefID,
+                &amp;i.CustomerID,
+                &amp;i.Username,
+                &amp;i.ProductID,
+                &amp;i.Quantity,
+                &amp;i.OrderDate,
+                &amp;i.Status,
+                &amp;i.Amount,
+                &amp;i.CreatedAt,
+                &amp;i.UpdatedAt,
+        )
+        return i, err
+}</span>
+
+const findOrdersByUsername = `-- name: FindOrdersByUsername :many
+SELECT id, ref_id, customer_id, username, product_id, quantity, order_date, status, amount, created_at, updated_at FROM orders
+WHERE username = $1
+ORDER BY created_at  DESC
+`
+
+func (q *Queries) FindOrdersByUsername(ctx context.Context, username string) ([]Order, error) <span class="cov0" title="0">{
+        rows, err := q.db.QueryContext(ctx, findOrdersByUsername, username)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+        items := []Order{}
+        for rows.Next() </span><span class="cov0" title="0">{
+                var i Order
+                if err := rows.Scan(
+                        &amp;i.ID,
+                        &amp;i.RefID,
+                        &amp;i.CustomerID,
+                        &amp;i.Username,
+                        &amp;i.ProductID,
+                        &amp;i.Quantity,
+                        &amp;i.OrderDate,
+                        &amp;i.Status,
+                        &amp;i.Amount,
+                        &amp;i.CreatedAt,
+                        &amp;i.UpdatedAt,
+                ); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov0" title="0">items = append(items, i)</span>
+        }
+        <span class="cov0" title="0">if err := rows.Close(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return items, nil</span>
+}
+
+const updateOrder = `-- name: UpdateOrder :one
+UPDATE orders
+SET 
+    status = $1,
+    amount = $2,
+    quantity = $3,
+    updated_at = CURRENT_TIMESTAMP
+WHERE 
+    ref_id = $4
+RETURNING id, ref_id, customer_id, username, product_id, quantity, order_date, status, amount, created_at, updated_at
+`
+
+type UpdateOrderParams struct {
+        Status   string          `json:"status"`
+        Amount   sql.NullFloat64 `json:"amount"`
+        Quantity int32           `json:"quantity"`
+        RefID    string          `json:"ref_id"`
+}
+
+func (q *Queries) UpdateOrder(ctx context.Context, arg UpdateOrderParams) (Order, error) <span class="cov0" title="0">{
+        row := q.db.QueryRowContext(ctx, updateOrder,
+                arg.Status,
+                arg.Amount,
+                arg.Quantity,
+                arg.RefID,
+        )
+        var i Order
+        err := row.Scan(
+                &amp;i.ID,
+                &amp;i.RefID,
+                &amp;i.CustomerID,
+                &amp;i.Username,
+                &amp;i.ProductID,
+                &amp;i.Quantity,
+                &amp;i.OrderDate,
+                &amp;i.Status,
+                &amp;i.Amount,
+                &amp;i.CreatedAt,
+                &amp;i.UpdatedAt,
+        )
+        return i, err
+}</span>
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package sqlc
+
+import "database/sql"
+
+type Store interface {
+        Querier
+}
+
+type SQLStore struct {
+        db *sql.DB
+        *Queries
+}
+
+func NewStore(db *sql.DB) Store <span class="cov0" title="0">{
+        return &amp;SQLStore{
+                db:      db,
+                Queries: New(db),
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package usecase
+
+import (
+        "context"
+        "github.com/google/uuid"
+        "order-svc/internal/dto"
+        "order-svc/internal/dto/event"
+        "order-svc/internal/repository/sqlc"
+        "order-svc/pkg/producer"
+)
+
+type BankRegistrationUsecase struct {
+        queries           sqlc.Store
+        orchestraProducer *producer.KafkaProducer
+}
+
+func NewBankRegistrationUsecase(queries sqlc.Store, producer *producer.KafkaProducer) *BankRegistrationUsecase <span class="cov8" title="1">{
+        return &amp;BankRegistrationUsecase{
+                queries:           queries,
+                orchestraProducer: producer,
+        }
+}</span>
+
+func (b *BankRegistrationUsecase) RegisterBankAccount(ctx context.Context, req *dto.BankRegistrationRequest) (*sqlc.BankAccountRegistration, error) <span class="cov8" title="1">{
+
+        bankAccount, err := b.queries.CreateBankAccountRegistration(ctx, sqlc.CreateBankAccountRegistrationParams{
+                CustomerID: uuid.New().String(),
+                Username:   req.Username,
+                Email:      req.Email,
+                Status:     dto.PROCESSING.String(),
+                Deposit:    req.Deposit,
+        })
+
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">basePayload := event.BasePayload[dto.BankRegistrationRequest, sqlc.BankAccountRegistration]{
+                Request:  *req,
+                Response: bankAccount,
+        }
+
+        orderEvent := event.NewGlobalEvent(
+                "create",
+                "success",
+                "bank_regis_created",
+                event.BANK_ACCOUNT_REGISTRATION.String(),
+                basePayload,
+        )
+        orderEvent.StatusCode = 201
+        bytes, err := orderEvent.ToJSON()
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">err = b.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;bankAccount, nil</span>
+}
+
+func (b *BankRegistrationUsecase) UpdateBankRegistrationMessaging(ctx context.Context, req event.GlobalEvent[dto.BankRegistrationUpdate, any]) error <span class="cov8" title="1">{
+
+        updatedRegis, err := b.queries.UpdateBankAccountRegistration(ctx, sqlc.UpdateBankAccountRegistrationParams{
+                CustomerID: req.Payload.Request.CustomerID,
+                Username:   req.Payload.Request.Username,
+                Email:      req.Payload.Request.Email,
+                Status:     req.Payload.Request.Status,
+        })
+
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">basePayload := event.BasePayload[dto.BankRegistrationUpdate, any]{
+                Request:  req.Payload.Request,
+                Response: updatedRegis,
+        }
+
+        registEvent := event.NewGlobalEvent(
+                "update",
+                "success",
+                "bank_regis_updated",
+                event.BANK_ACCOUNT_REGISTRATION.String(),
+                basePayload,
+        )
+
+        registEvent.StatusCode = 200
+        bytes, err := registEvent.ToJSON()
+
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">err = b.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package usecase
+
+import (
+        "context"
+        "database/sql"
+        "errors"
+        "fmt"
+        "log"
+        "order-svc/internal/dto"
+        "order-svc/internal/dto/event"
+        "order-svc/internal/repository/sqlc"
+        "order-svc/pkg/producer"
+
+        "github.com/google/uuid"
+)
+
+var ErrUnauthorizeCancelOrder = errors.New("user unauthorize to cancel order")
+var ErrCannotCancelOrder = errors.New("cannot cancel uncomplete order")
+
+type OrderUsecase struct {
+        queries           sqlc.Store
+        orchestraProducer *producer.KafkaProducer
+}
+
+func NewOrderUsecase(queries sqlc.Store, producer *producer.KafkaProducer) *OrderUsecase <span class="cov8" title="1">{
+        return &amp;OrderUsecase{
+                queries:           queries,
+                orchestraProducer: producer,
+        }
+}</span>
+
+func (oc *OrderUsecase) CreateOrder(ctx context.Context, req *dto.OrderRequest) (*sqlc.Order, error) <span class="cov8" title="1">{
+
+        orderCreated, err := oc.queries.CreateOrder(ctx, sqlc.CreateOrderParams{
+                RefID:      fmt.Sprintf("%s-%s", "TOKPED", uuid.New()),
+                CustomerID: req.CustomerID,
+                Username:   req.Username,
+                ProductID:  req.ProductID,
+                Quantity:   req.Quantity,
+                Status:     dto.PROCESSING.String(),
+        })
+
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">basePayload := event.BasePayload[dto.OrderRequest, sqlc.Order]{
+                Request:  *req,
+                Response: orderCreated,
+        }
+
+        orderEvent := event.NewGlobalEvent(
+                "create",
+                "success",
+                "order_created",
+                event.ORDER_PROCESS.String(),
+                basePayload,
+        )
+        orderEvent.StatusCode = 201
+        bytes, err := orderEvent.ToJSON()
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">err = oc.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;orderCreated, nil</span>
+}
+
+func (oc *OrderUsecase) CancelOrder(ctx context.Context, req *dto.OrderCancelRequest) (*sqlc.Order, error) <span class="cov8" title="1">{
+        order, err := oc.queries.FindOrderByID(ctx, int32(req.OrderID))
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if order.Status != dto.COMPLETE.String() </span><span class="cov8" title="1">{
+                return nil, ErrCannotCancelOrder
+        }</span>
+
+        <span class="cov8" title="1">if req.Username != order.Username </span><span class="cov8" title="1">{
+                return nil, ErrUnauthorizeCancelOrder
+        }</span>
+
+        <span class="cov8" title="1">reqUpdate := &amp;dto.OrderUpdateRequest{
+                RefID:     order.RefID,
+                Amount:    order.Amount.Float64,
+                Quantity:  order.Quantity,
+                Status:    dto.CANCEL_PROCESSING.String(),
+                EventType: event.ORDER_CANCEL_PROCESS.String(),
+        }
+
+        updatedOrder, err := oc.UpdateOrder(ctx, reqUpdate)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">basePayload := event.BasePayload[dto.OrderUpdateRequest, sqlc.Order]{
+                Request:  *reqUpdate,
+                Response: *updatedOrder,
+        }
+
+        orderEvent := event.NewGlobalEvent(
+                "update",
+                "success",
+                "order_cancel",
+                event.ORDER_CANCEL_PROCESS.String(),
+                basePayload,
+        )
+
+        orderEvent.StatusCode = 200
+
+        bytes, err := orderEvent.ToJSON()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">err = oc.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return updatedOrder, nil</span>
+}
+
+func (oc *OrderUsecase) UpdateOrderMessaging(ctx context.Context, req event.GlobalEvent[dto.OrderUpdateRequest, any]) error <span class="cov8" title="1">{
+
+        order, err := oc.queries.FindOrderByRefID(ctx, req.Payload.Request.RefID)
+
+        if err != nil </span><span class="cov8" title="1">{
+                log.Println("error find order by refID: ", err)
+                return err
+        }</span>
+
+        <span class="cov8" title="1">var updateReq dto.OrderUpdateRequest
+
+        if req.EventType == event.ORDER_PROCESS.String() </span><span class="cov8" title="1">{
+                updateReq = dto.OrderUpdateRequest{
+                        RefID:     order.RefID,
+                        Amount:    req.Payload.Request.Amount,
+                        Status:    req.Payload.Request.Status,
+                        Quantity:  req.Payload.Request.Quantity,
+                        EventType: req.EventType,
+                }
+        }</span> else<span class="cov8" title="1"> {
+                updateReq = dto.OrderUpdateRequest{
+                        RefID:     order.RefID,
+                        Amount:    order.Amount.Float64,
+                        Status:    req.Payload.Request.Status,
+                        Quantity:  order.Quantity,
+                        EventType: req.EventType,
+                }
+        }</span>
+
+        <span class="cov8" title="1">updatedOrder, err := oc.UpdateOrder(ctx, &amp;updateReq)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">basePayload := event.BasePayload[dto.OrderUpdateRequest, sqlc.Order]{
+                Request:  req.Payload.Request,
+                Response: *updatedOrder,
+        }
+
+        orderEvent := event.NewGlobalEvent(
+                "update",
+                "success",
+                "order_updated",
+                req.EventType,
+                basePayload,
+        )
+
+        orderEvent.EventID = req.EventID
+        orderEvent.InstanceID = req.InstanceID
+        orderEvent.StatusCode = 200
+
+        bytes, err := orderEvent.ToJSON()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">err = oc.orchestraProducer.SendMessage(uuid.New().String(), bytes)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (oc *OrderUsecase) UpdateOrder(ctx context.Context, req *dto.OrderUpdateRequest) (*sqlc.Order, error) <span class="cov8" title="1">{
+
+        log.Println("req updateOrder: ", req)
+
+        updatedOrder, err := oc.queries.UpdateOrder(ctx, sqlc.UpdateOrderParams{
+                Status: req.Status,
+                Amount: sql.NullFloat64{
+                        Float64: req.Amount,
+                        Valid:   true,
+                },
+                Quantity: req.Quantity,
+                RefID:    req.RefID,
+        })
+
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;updatedOrder, nil</span>
+}
+
+func (oc *OrderUsecase) FindAllOrder(ctx context.Context, username string) ([]sqlc.Order, error) <span class="cov0" title="0">{
+        orders, err := oc.queries.FindOrdersByUsername(ctx, username)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return orders, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">package main
+
+import (
+        "log"
+        "order-svc/internal/app"
+        "order-svc/pkg"
+
+        "github.com/gin-gonic/gin"
+)
+
+func main() <span class="cov0" title="0">{
+
+        config := pkg.LoadConfig()
+
+        err := pkg.InitializeKeys()
+
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal("Error initializing keys")
+        }</span>
+
+        <span class="cov0" title="0">g := gin.Default()
+        db := pkg.NewDBConn(config.DBDriver, config.DBSource)
+
+        app.NewApp(db, g, config).Run()</span>
+}
+</pre>
+		
+		<pre class="file" id="file18" style="display: none">package pkg
+
+import (
+        "crypto/rsa"
+        "log"
+        "os"
+
+        "github.com/golang-jwt/jwt/v5"
+        "github.com/joho/godotenv"
+)
+
+const (
+        privKeyPath = "keys/private.pem"
+        pubKeyPath  = "keys/public.pem"
+)
+
+var (
+        verifyKey *rsa.PublicKey
+        signKey   *rsa.PrivateKey
+)
+
+type Config struct {
+        Port           string
+        DBDriver       string
+        DBSource       string
+        KafkaBroker    string
+        OrchestraTopic string
+        OrderTopic     string
+        GroupID        string
+}
+
+func LoadConfig() *Config <span class="cov0" title="0">{
+
+        err := godotenv.Load()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal("Error loading .env file")
+        }</span>
+
+        <span class="cov0" title="0">return &amp;Config{
+                Port:           os.Getenv("PORT"),
+                DBDriver:       os.Getenv("DB_DRIVER"),
+                DBSource:       os.Getenv("DB_SOURCE"),
+                KafkaBroker:    os.Getenv("KAFKA_BROKER"),
+                OrchestraTopic: os.Getenv("ORCHESTRA_TOPIC"),
+                OrderTopic:     os.Getenv("ORDER_TOPIC"),
+                GroupID:        os.Getenv("GROUP_ID"),
+        }</span>
+}
+
+func InitializeKeys() error <span class="cov0" title="0">{
+        // Load private key
+        privateKeyPEM, err := os.ReadFile(privKeyPath)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">signKey, err = jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // Load public key
+        <span class="cov0" title="0">publicKeyPEM, err := os.ReadFile(pubKeyPath)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(publicKeyPEM)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file19" style="display: none">package consumer
+
+import (
+        "context"
+        "order-svc/internal/delivery/messaging"
+
+        "github.com/IBM/sarama"
+)
+
+type KafkaConsumer struct {
+        consumer sarama.ConsumerGroup
+        topics   []string
+        handler  sarama.ConsumerGroupHandler
+}
+
+func NewKafkaConsumer(
+        brokers []string, groupID string,
+        topics []string,
+        messageHandler *messaging.MessageHandler,
+) (*KafkaConsumer, error) <span class="cov0" title="0">{
+        config := sarama.NewConfig()
+        config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+        config.Consumer.Offsets.Initial = sarama.OffsetOldest
+
+        consumer, err := sarama.NewConsumerGroup(brokers, groupID, config)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return &amp;KafkaConsumer{
+                consumer: consumer,
+                topics:   topics,
+                handler:  messageHandler,
+        }, nil</span>
+}
+
+func (kc *KafkaConsumer) Consume(ctx context.Context) error <span class="cov0" title="0">{
+        for </span><span class="cov0" title="0">{
+                err := kc.consumer.Consume(ctx, kc.topics, kc.handler)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">if ctx.Err() != nil </span><span class="cov0" title="0">{
+                        return ctx.Err()
+                }</span>
+        }
+}
+
+func (kc *KafkaConsumer) Close() error <span class="cov0" title="0">{
+        return kc.consumer.Close()
+}</span>
+</pre>
+		
+		<pre class="file" id="file20" style="display: none">package pkg
+
+import (
+        "database/sql"
+        "log"
+        "time"
+
+        _ "github.com/lib/pq"
+)
+
+func NewDBConn(dbDriver, dbSource string) *sql.DB <span class="cov0" title="0">{
+        log.Println("dbDriver: ", dbDriver)
+        log.Println("dbSource: ", dbSource)
+        db, err := sql.Open(dbDriver, dbSource)
+
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal("error establish connection db")
+        }</span>
+
+        <span class="cov0" title="0">db.SetMaxIdleConns(5)
+        db.SetMaxOpenConns(20)
+        db.SetConnMaxIdleTime(10 * time.Minute)
+        db.SetConnMaxLifetime(60 * time.Minute)
+
+        return db</span>
+}
+</pre>
+		
+		<pre class="file" id="file21" style="display: none">package pkg
+
+import (
+        "errors"
+        "fmt"
+        "time"
+
+        "github.com/golang-jwt/jwt/v5"
+)
+
+type Claims struct {
+        jwt.RegisteredClaims
+        User UserInfo
+}
+
+type UserInfo struct {
+        ID       string `json:"id"`
+        Username string `json:"username"`
+}
+
+type Token struct {
+        Token     string `json:"access_token"`
+        ExpiresAt string `json:"expires_at"`
+}
+
+func GenerateToken(userInfo UserInfo) (Token, error) <span class="cov0" title="0">{
+        expirationTime := time.Now().Add(200 * time.Minute)
+        claims := &amp;Claims{
+                RegisteredClaims: jwt.RegisteredClaims{
+                        ExpiresAt: jwt.NewNumericDate(expirationTime),
+                        IssuedAt:  jwt.NewNumericDate(time.Now()),
+                        NotBefore: jwt.NewNumericDate(time.Now()),
+                        Issuer:    "golang-book.beneboba.me",
+                        Subject:   userInfo.ID,
+                },
+                User: UserInfo{
+                        ID:       userInfo.ID,
+                        Username: userInfo.Username,
+                },
+        }
+
+        token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+
+        accessToken, err := token.SignedString(signKey)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return Token{}, err
+        }</span>
+
+        <span class="cov0" title="0">return Token{
+                Token:     accessToken,
+                ExpiresAt: expirationTime.Format(time.DateTime),
+        }, nil</span>
+}
+
+func ValidateToken(tokenString string) (*Claims, error) <span class="cov0" title="0">{
+        token, err := jwt.ParseWithClaims(tokenString, &amp;Claims{}, func(token *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+                if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+                }</span>
+                <span class="cov0" title="0">return verifyKey, nil</span>
+        })
+
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">if claims, ok := token.Claims.(*Claims); ok &amp;&amp; token.Valid </span><span class="cov0" title="0">{
+                return claims, nil
+        }</span>
+
+        <span class="cov0" title="0">return nil, errors.New("invalid token")</span>
+}
+</pre>
+		
+		<pre class="file" id="file22" style="display: none">package producer
+
+import (
+        "time"
+
+        "github.com/IBM/sarama"
+)
+
+type KafkaProducer struct {
+        producer sarama.SyncProducer
+        topic    string
+}
+
+func NewKafkaProducer(brokers []string, topic string) (*KafkaProducer, error) <span class="cov8" title="1">{
+        config := sarama.NewConfig()
+        config.Producer.Return.Successes = true
+        config.Producer.Retry.Max = 5
+        config.Producer.Retry.Backoff = 100 * time.Millisecond
+        config.Producer.RequiredAcks = sarama.WaitForAll
+        config.Producer.Compression = sarama.CompressionSnappy
+
+        producer, err := sarama.NewSyncProducer(brokers, config)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;KafkaProducer{
+                producer: producer,
+                topic:    topic,
+        }, nil</span>
+}
+
+func (kp *KafkaProducer) SendMessage(key string, value []byte) error <span class="cov8" title="1">{
+        msg := &amp;sarama.ProducerMessage{
+                Topic: kp.topic,
+                Key:   sarama.StringEncoder(key),
+                Value: sarama.ByteEncoder(value),
+        }
+
+        _, _, err := kp.producer.SendMessage(msg)
+        return err
+}</span>
+
+func (kp *KafkaProducer) Close() error <span class="cov0" title="0">{
+        return kp.producer.Close()
+}</span>
+</pre>
+		
+		<pre class="file" id="file23" style="display: none">package pkg
+
+import (
+        "math/rand"
+        "time"
+)
+
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func GenerateRandom6Char() string <span class="cov8" title="1">{
+        r := rand.New(rand.NewSource(time.Now().UnixNano()))
+        result := make([]byte, 6)
+        for i := range result </span><span class="cov8" title="1">{
+                result[i] = charset[r.Intn(len(charset))]
+        }</span>
+        <span class="cov8" title="1">return string(result)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

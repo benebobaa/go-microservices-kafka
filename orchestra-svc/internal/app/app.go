@@ -41,14 +41,14 @@ func (app *App) Run() {
 	//}
 	//defer userProducer.Close()
 
-	userProductProducer, err := producer.NewKafkaProducer(
+	userProducer, err := producer.NewKafkaProducer(
 		[]string{app.config.KafkaBroker},
-		app.config.UserProductTopic,
+		app.config.UserTopic,
 	)
 	if err != nil {
 		log.Fatalf("Error creating Kafka producer: %v", err)
 	}
-	defer userProductProducer.Close()
+	defer userProducer.Close()
 
 	//productProducer, err := producer.NewKafkaProducer(
 	//	[]string{app.config.KafkaBroker},
@@ -59,7 +59,7 @@ func (app *App) Run() {
 	//}
 	//defer productProducer.Close()
 
-	if err := app.startService(userProductProducer); err != nil {
+	if err := app.startService(userProducer); err != nil {
 		log.Fatalf("Error starting service: %v", err)
 	}
 
@@ -68,13 +68,13 @@ func (app *App) Run() {
 		Handler: app.gin,
 	}
 
-	consumer, err := consumer.NewKafkaConsumer(
+	c, err := consumer.NewKafkaConsumer(
 		[]string{app.config.KafkaBroker},
 		app.config.GroupID,
 		[]string{app.config.OrchestraTopic},
 		app.msg,
 	)
-	defer consumer.Close()
+	defer c.Close()
 
 	if err != nil {
 		log.Fatalf("Error creating Kafka consumer: %v", err)
@@ -84,7 +84,7 @@ func (app *App) Run() {
 	defer cancel2()
 
 	go func() {
-		if err := consumer.Consume(ctxCancel); err != nil {
+		if err := c.Consume(ctxCancel); err != nil {
 			log.Fatalf("Error consuming Kafka messages: %v", err)
 		}
 	}()

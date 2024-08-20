@@ -18,11 +18,11 @@ var ErrUnauthorizeCancelOrder = errors.New("user unauthorize to cancel order")
 var ErrCannotCancelOrder = errors.New("cannot cancel uncomplete order")
 
 type OrderUsecase struct {
-	queries           sqlc.Querier
+	queries           sqlc.Store
 	orchestraProducer *producer.KafkaProducer
 }
 
-func NewOrderUsecase(queries sqlc.Querier, producer *producer.KafkaProducer) *OrderUsecase {
+func NewOrderUsecase(queries sqlc.Store, producer *producer.KafkaProducer) *OrderUsecase {
 	return &OrderUsecase{
 		queries:           queries,
 		orchestraProducer: producer,

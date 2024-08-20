@@ -29,11 +29,42 @@ type UserHandler struct {
 	mutex *sync.RWMutex
 }
 
-//
-// func (h *UserHandler) UpdateUserBankID(c *gin.Context) {
-//
-//
-// }
+func (h *UserHandler) UpdateUserBankID(c *gin.Context) {
+
+	var req UserUpdateRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
+		return
+	}
+
+	err := valo.Validate(req)
+
+	if err != nil {
+		c.JSON(400, gin.H{"status_code": 400, "error": err.Error()})
+		return
+	}
+
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	username := c.Param("username")
+	if username == "" {
+		c.JSON(400, gin.H{"status_code": 400, "error": "username is required"})
+		return
+	}
+
+	for _, user := range h.db {
+		if user.Username == username {
+			user.AccountBankID = req.AccountBankID
+			h.db[user.ID] = user
+			c.JSON(200, gin.H{"status_code": 200, "data": user})
+			return
+		}
+	}
+
+	c.JSON(404, gin.H{"status_code": 404, "error": "user not found"})
+}
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req UserRequest

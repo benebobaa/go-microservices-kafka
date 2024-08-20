@@ -19,10 +19,11 @@ const (
 	USER_VALIDATION_FAILED
 	REFUND_SUCCESS
 	REFUND_FAILED
+	USER_BANKID_UPDATED
 )
 
 func (s State) String() string {
-	return [...]string{"payment_success", "user_validation_success", "product_release_success", "product_reservation_failed", "user_validation_failed", "refund_success", "refund_failed"}[s]
+	return [...]string{"payment_success", "user_validation_success", "product_release_success", "product_reservation_failed", "user_validation_failed", "refund_success", "refund_failed", "user_bankid_updated"}[s]
 }
 
 type EventType int
@@ -30,10 +31,11 @@ type EventType int
 const (
 	ORDER_PROCESS EventType = iota
 	ORDER_CANCEL_PROCESS
+	BANK_ACCOUNT_REGISTRATION
 )
 
 func (e EventType) String() string {
-	return [...]string{"order_process", "order_cancel_process"}[e]
+	return [...]string{"order_process", "order_cancel_process", "bank_account_registration"}[e]
 }
 
 type BasePayload[R any, S any] struct {

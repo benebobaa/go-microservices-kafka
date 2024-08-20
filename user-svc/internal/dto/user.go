@@ -9,6 +9,11 @@ type UserCreateRequest struct {
 	Email    string `json:"email"`
 }
 
+type UpdateBankIDRequest struct {
+	Username      string `json:"username"`
+	AccountBankID string `json:"account_bank_id"`
+}
+
 type UserResponse struct {
 	ID            string `json:"id"`
 	Username      string `json:"username"`

@@ -11,13 +11,13 @@ import (
 )
 
 type ProductClient struct {
-	url    string
+	Url    string
 	client *http.Client
 }
 
 func NewProductClient(url string, timeout time.Duration) *ProductClient {
 	return &ProductClient{
-		url: url,
+		Url: url,
 		client: &http.Client{
 			Timeout: timeout,
 		},
@@ -31,7 +31,7 @@ func (r *ProductClient) call(ctx context.Context, suffix, method string, request
 		return fmt.Errorf("error marshalling request: %v", err)
 	}
 
-	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", r.url, suffix), bytes.NewReader(jsonData))
+	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", r.Url, suffix), bytes.NewReader(jsonData))
 	if err != nil {
 		return fmt.Errorf("error creating HTTP request: %v", err)
 	}

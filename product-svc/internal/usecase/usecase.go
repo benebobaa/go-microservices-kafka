@@ -3,31 +3,28 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"product-svc/internal/dto"
 	"product-svc/internal/dto/event"
-	"product-svc/pkg/http_client"
-	"product-svc/pkg/producer"
-	"time"
-
-	"github.com/benebobaa/retry-it"
-	"github.com/google/uuid"
+	"product-svc/internal/interfaces"
+	"product-svc/internal/provider"
 )
 
 type Usecase struct {
-	userClient        *http_client.ProductClient
-	orchestraProducer *producer.KafkaProducer
+	productProvider   provider.ProductProvider
+	orchestraProducer interfaces.Producer
 }
 
-func NewUsecase(userClient *http_client.ProductClient, orchestraProducer *producer.KafkaProducer) *Usecase {
+func NewUsecase(productProvider provider.ProductProvider, orchestraProducer interfaces.Producer) *Usecase {
 	return &Usecase{
-		userClient:        userClient,
+		productProvider:   productProvider,
 		orchestraProducer: orchestraProducer,
 	}
 }
 
 func (u *Usecase) ReserveProductMessaging(ctx context.Context, ge event.GlobalEvent[dto.ProductRequest, any]) error {
-	response, err := u.ReserveProduct(ctx, &dto.ProductRequest{
+	response, err := u.productProvider.ReserveProduct(ctx, &dto.ProductRequest{
 		ProductID: ge.Payload.Request.ProductID,
 		Quantity:  ge.Payload.Request.Quantity,
 	})
@@ -84,14 +81,14 @@ func (u *Usecase) ReserveProductMessaging(ctx context.Context, ge event.GlobalEv
 	}
 
 	if err != nil {
-		return fmt.Errorf("product reservation failed: %w", err)
+		return fmt.Errorf("product reservation failed: %s", err)
 	}
 
 	return nil
 }
 
 func (u *Usecase) ReleaseProductMessaging(ctx context.Context, ge event.GlobalEvent[dto.ProductRequest, any]) error {
-	response, err := u.ReleaseProduct(ctx, &dto.ProductRequest{
+	response, err := u.productProvider.ReleaseProduct(ctx, &dto.ProductRequest{
 		ProductID: ge.Payload.Request.ProductID,
 		Quantity:  ge.Payload.Request.Quantity,
 	})
@@ -152,46 +149,4 @@ func (u *Usecase) ReleaseProductMessaging(ctx context.Context, ge event.GlobalEv
 	}
 
 	return nil
-}
-
-func (u *Usecase) ReserveProduct(ctx context.Context, req *dto.ProductRequest) (*dto.BaseResponse[dto.ProductResponse], *dto.ErrorResponse) {
-	var response dto.BaseResponse[dto.ProductResponse]
-
-	counter := 0
-	err := retryit.Do(ctx, func(ctx context.Context) error {
-		counter++
-		log.Println("retrying reserve: ", counter)
-		return u.userClient.POST(ctx, "/reserve", req, &response)
-	}, retryit.WithInitialDelay(500*time.Millisecond))
-
-	if err != nil {
-		return &response, &dto.ErrorResponse{Error: err.Error()}
-	}
-
-	if response.StatusCode != 200 {
-		return &response, &dto.ErrorResponse{Error: response.Error}
-	}
-
-	return &response, nil
-}
-
-func (u *Usecase) ReleaseProduct(ctx context.Context, req *dto.ProductRequest) (*dto.BaseResponse[dto.ProductResponse], *dto.ErrorResponse) {
-	var response dto.BaseResponse[dto.ProductResponse]
-
-	counter := 0
-	err := retryit.Do(ctx, func(ctx context.Context) error {
-		counter++
-		log.Println("retrying release: ", counter)
-		return u.userClient.POST(ctx, "/release", req, &response)
-	}, retryit.WithInitialDelay(500*time.Millisecond))
-
-	if err != nil {
-		return &response, &dto.ErrorResponse{Error: err.Error()}
-	}
-
-	if response.StatusCode != 200 {
-		return &response, &dto.ErrorResponse{Error: response.Error}
-	}
-
-	return &response, nil
 }

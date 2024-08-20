@@ -26,10 +26,12 @@ type Transaction struct {
 type Balance struct {
 	AccountID string  `json:"account_bank_id"`
 	Balance   float64 `json:"balance"`
+	Username  string  `json:"username"`
 }
 
 type BalanceRequest struct {
-	Balance float64 `json:"balance" valo:"min=1000"`
+	Balance  float64 `json:"deposit" valo:"min=1000"`
+	Username string  `json:"username" valo:"notblank"`
 }
 
 type TransactionRequest struct {
@@ -66,9 +68,17 @@ func (h *PaymentHandler) CreateBalance(c *gin.Context) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
+	for _, balance := range h.dbB {
+		if balance.Username == req.Username {
+			c.JSON(400, gin.H{"status_code": 400, "error": "username already exists"})
+			return
+		}
+	}
+
 	balance := Balance{
 		AccountID: "AC-" + uuid.New().String(),
 		Balance:   req.Balance,
+		Username:  req.Username,
 	}
 
 	h.dbB[balance.AccountID] = balance
@@ -227,16 +237,19 @@ func (h *PaymentHandler) LoadData() error {
 
 	balance1 := Balance{
 		AccountID: "AC-001",
+		Username:  "beneboba",
 		Balance:   50000,
 	}
 
 	balance2 := Balance{
 		AccountID: "AC-002",
+		Username:  "archlinux",
 		Balance:   100000,
 	}
 
 	balance3 := Balance{
 		AccountID: "AC-003",
+		Username:  "astrovim",
 		Balance:   5000,
 	}
 
