@@ -5,7 +5,7 @@ import (
 	retryit "github.com/benebobaa/retry-it"
 	"log"
 	"product-svc/internal/dto"
-	"product-svc/pkg/http_client"
+	"product-svc/internal/interfaces"
 	"time"
 )
 
@@ -15,10 +15,10 @@ type ProductProvider interface {
 }
 
 type ProductProviderImpl struct {
-	client *http_client.ProductClient
+	client interfaces.HtppRequest
 }
 
-func NewProductProviderImpl(client *http_client.ProductClient) ProductProvider {
+func NewProductProviderImpl(client interfaces.HtppRequest) ProductProvider {
 	return &ProductProviderImpl{client: client}
 }
 
@@ -31,6 +31,8 @@ func (u *ProductProviderImpl) ReserveProduct(ctx context.Context, req *dto.Produ
 		log.Println("retrying reserve: ", counter)
 		return u.client.POST(ctx, "/reserve", req, &response)
 	}, retryit.WithInitialDelay(500*time.Millisecond))
+
+	//err := u.client.POST(ctx, "/reserve", req, &response)
 
 	if err != nil {
 		return &response, &dto.ErrorResponse{Error: err.Error()}
@@ -52,6 +54,7 @@ func (u *ProductProviderImpl) ReleaseProduct(ctx context.Context, req *dto.Produ
 		log.Println("retrying release: ", counter)
 		return u.client.POST(ctx, "/release", req, &response)
 	}, retryit.WithInitialDelay(500*time.Millisecond))
+	//err := u.client.POST(ctx, "/release", req, &response)
 
 	if err != nil {
 		return &response, &dto.ErrorResponse{Error: err.Error()}

@@ -30,7 +30,7 @@ type Balance struct {
 }
 
 type BalanceRequest struct {
-	Balance  float64 `json:"deposit" valo:"min=1000"`
+	Deposit  float64 `json:"deposit" valo:"min=1000"`
 	Username string  `json:"username" valo:"notblank"`
 }
 
@@ -77,7 +77,7 @@ func (h *PaymentHandler) CreateBalance(c *gin.Context) {
 
 	balance := Balance{
 		AccountID: "AC-" + uuid.New().String(),
-		Balance:   req.Balance,
+		Balance:   req.Deposit,
 		Username:  req.Username,
 	}
 
