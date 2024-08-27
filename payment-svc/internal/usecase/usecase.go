@@ -80,7 +80,7 @@ func (u *Usecase) CreateAccountBalanceMessaging(ctx context.Context, ge event.Gl
 	}
 
 	if err != nil {
-		return fmt.Errorf("account balance processing failed: %w", err)
+		return fmt.Errorf("account balance processing failed: %s", err)
 	}
 
 	return nil
@@ -144,7 +144,7 @@ func (u *Usecase) ProcessPaymentMessaging(ctx context.Context, ge event.GlobalEv
 	}
 
 	if err != nil {
-		return fmt.Errorf("payment processing failed: %w", err)
+		return fmt.Errorf("payment processing failed: %s", err)
 	}
 
 	return nil
@@ -203,7 +203,7 @@ func (u *Usecase) RefundPaymentMessaging(ctx context.Context, ge event.GlobalEve
 	}
 
 	if err != nil {
-		return fmt.Errorf("refund processing failed: %w", err)
+		return fmt.Errorf("refund processing failed: %s", err)
 	}
 
 	return nil

@@ -34,6 +34,10 @@ func (h MessageHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sar
 				err = h.u.ReserveProductMessaging(sess.Context(), eventMsg)
 			}
 
+			if eventMsg.State == event.PAYMENT_FAILED.String() {
+				err = h.u.ReleaseProductMessaging(sess.Context(), eventMsg)
+			}
+
 			if eventMsg.State == event.PRODUCT_RETRY.String() {
 				err = h.u.ReserveProductMessaging(sess.Context(), eventMsg)
 			}

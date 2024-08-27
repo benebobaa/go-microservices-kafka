@@ -12,18 +12,18 @@ import (
 )
 
 type Usecase struct {
-	userClient        interfaces.Client
+	//userClient        interfaces.Client
 	orchestraProducer interfaces.Producer
 	provider          provider.UserProvider
 }
 
 func NewUsecase(
-	userClient interfaces.Client,
+	//userClient interfaces.Client,
 	orchestraProducer interfaces.Producer,
 	provider provider.UserProvider,
 ) *Usecase {
 	return &Usecase{
-		userClient:        userClient,
+		//userClient:        userClient,
 		orchestraProducer: orchestraProducer,
 		provider:          provider,
 	}

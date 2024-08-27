@@ -14,7 +14,7 @@ migratecreate:
 	migrate create -ext sql -dir db/migration -seq $(name)
 
 migratedown:
-	migrate -path db/migration -database "postgresql://root:root@127.0.0.1:5432/order_svc?sslmode=disable" -verbose down
+	migrate -path db/migration -database "postgresql://root:root@127.0.0.1:5432/order_svc?sslmode=disable" -verbose down 1
 
 migrateup:
 	migrate -path db/migration -database "postgresql://root:root@127.0.0.1:5432/order_svc?sslmode=disable" -verbose up

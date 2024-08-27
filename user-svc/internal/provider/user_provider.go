@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	retryit "github.com/benebobaa/retry-it"
+	"github.com/benebobaa/retry-it"
 	"log"
 	"time"
 	"user-svc/internal/dto"
@@ -40,7 +40,12 @@ func (u *UserProviderImpl) GetUserDetail(ctx context.Context, request *dto.UserV
 			&response,
 		)
 	}, retryit.WithInitialDelay(500*time.Millisecond))
-
+	//err := u.client.GET(
+	//	ctx,
+	//	fmt.Sprintf("/users/%s", request.Username),
+	//	request,
+	//	&response,
+	//)
 	log.Println("response:", response)
 
 	if err != nil {
@@ -73,7 +78,12 @@ func (u *UserProviderImpl) UpdateUser(ctx context.Context, request *dto.UpdateBa
 			&response,
 		)
 	}, retryit.WithInitialDelay(500*time.Millisecond))
-
+	//err := u.client.PATCH(
+	//	ctx,
+	//	fmt.Sprintf("/users/%s", request.Username),
+	//	request,
+	//	&response,
+	//)
 	if err != nil {
 		return &response, &dto.ErrorResponse{
 			Message: err.Error(),
@@ -103,7 +113,12 @@ func (u *UserProviderImpl) CreateUser(ctx context.Context, request *dto.UserCrea
 			&response,
 		)
 	}, retryit.WithInitialDelay(500*time.Millisecond))
-
+	//err := u.client.POST(
+	//	ctx,
+	//	"/users",
+	//	request,
+	//	&response,
+	//)
 	if err != nil {
 		return &response, &dto.ErrorResponse{
 			Message: err.Error(),
