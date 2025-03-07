@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "22181:2181"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  orchestra-service:
+    build:
+      context: ./orchestra-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - PORT=8082
+      - DB_DRIVER=postgres
+      - DB_SOURCE=postgresql://root:root@postgres:5432/orchestra_svc?sslmode=disable
+      - KAFKA_BROKER=kafka:9092
+      - GROUP_ID=orchestra-svc-group
+
+  order-service:
+    build:
+      context: ./order-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - PORT=8081
+      - DB_DRIVER=postgres
+      - DB_SOURCE=postgresql://root:root@postgres:5432/order_svc?sslmode=disable
+      - KAFKA_BROKER=kafka:9092
+      - GROUP_ID=order-svc-group
+
+  payment-service:
+    build:
+      context: ./payment-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - PORT=8083
+      - DB_DRIVER=postgres
+      - DB_SOURCE=postgresql://root:root@postgres:5432/payment_svc?sslmode=disable
+      - KAFKA_BROKER=kafka:9092
+      - GROUP_ID=payment-svc-group
+
+  product-service:
+    build:
+      context: ./product-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - PORT=8084
+      - DB_DRIVER=postgres
+      - DB_SOURCE=postgresql://root:root@postgres:5432/product_svc?sslmode=disable
+      - KAFKA_BROKER=kafka:9092
+      - GROUP_ID=product-svc-group
+
+  user-service:
+    build:
+      context: ./user-svc
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - PORT=8085
+      - DB_DRIVER=postgres
+      - DB_SOURCE=postgresql://root:root@postgres:5432/user_svc?sslmode=disable
+      - KAFKA_BROKER=kafka:9092
+      - GROUP_ID=user-svc-group
+
+volumes:
+  postgres_data:
