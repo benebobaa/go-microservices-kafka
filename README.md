@@ -4,6 +4,8 @@ A robust microservices architecture implementation using Go and Apache Kafka for
 
 ## 🏗️ Architecture Overview
 
+![High Level Architecture](docs/images/diagram_high_level.png)
+
 This project consists of five microservices:
 
 - **Orchestra Service**: Orchestrates workflows and manages the communication between services
@@ -14,6 +16,14 @@ This project consists of five microservices:
 
 ### Event-Driven Architecture
 The services communicate asynchronously using Apache Kafka as the message broker, enabling loose coupling and high scalability.
+
+## 🔄 Order Creation Flow
+
+![Order Creation Flow](docs/images/flow_create_order.png)
+
+## 📊 Orchestra Service ERD
+
+![Orchestra Service ERD](docs/images/orchestra_svc_erd.png)
 
 ## 🚀 Technologies
 
